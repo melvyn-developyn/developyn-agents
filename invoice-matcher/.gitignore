@@ -1,0 +1,8 @@
+credentials/
+data/*.db
+data/attachments/
+.env
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store

@@ -1,0 +1,26 @@
+gmail:
+  credentials_file: "credentials/gmail_credentials.json"
+  token_file: "credentials/gmail_token.json"
+  search_query: "subject:(invoice OR receipt OR statement) has:attachment"
+  max_results: 50
+  attachments_path: "data/attachments/"
+
+quickbooks:
+  client_id: "${QB_CLIENT_ID}"
+  client_secret: "${QB_CLIENT_SECRET}"
+  realm_id: "${QB_REALM_ID}"
+  environment: "sandbox"
+  sandbox: true
+  csv_path:
+
+matching:
+  amount_tolerance: 1.00
+  date_window_days: 14
+  vendor_name_similarity: 0.60
+  min_confidence_score: 40
+
+database:
+  path: "data/invoice_matcher.db"
+
+attachments:
+  path: "data/attachments/"
