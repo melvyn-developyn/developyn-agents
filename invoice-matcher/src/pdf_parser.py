@@ -101,10 +101,6 @@ class PDFParser:
         
         vat_info = self._detect_vat(text, amount)
         
-        confidence_score = self._calculate_confidence(
-            invoice_number, amount, invoice_date, expected_amount
-        )
-        
         return Invoice(
             invoice_number=invoice_number,
             amount=amount,
@@ -112,7 +108,6 @@ class PDFParser:
             vendor_name=None,
             attachment_path=pdf_path,
             email_message_id=email_message_id,
-            confidence_score=confidence_score,
             vat_amount=vat_info['vat_amount'],
             vat_rate=vat_info['vat_rate'],
             net_amount=vat_info['net_amount'],

@@ -154,7 +154,6 @@ class QBOWebClient:
             payee_name=payee_name,
             memo=description,
             account_name='Bank (For Review)',
-            status='unmatched',
         )
 
     def _build_headers(self, session: dict) -> dict:
