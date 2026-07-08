@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --color-brand-50: #edf1f7;
+  --color-brand-100: #dbeafe;
+  --color-brand-500: #2457d6;
+  --color-brand-600: #1f4bbd;
+  --color-brand-700: #162033;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: #111827;
+  background: #f5f7fb;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide number-input spinners — hours cells read cleaner without them. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@layer components {
+  .card {
+    background-color: white;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(226 232 240);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+  .btn-primary {
+    background-color: #2457d6;
+    color: white;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: background-color 0.15s;
+  }
+  .btn-primary:hover {
+    background-color: #1f4bbd;
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background-color: white;
+    border: 1px solid rgb(203 213 225);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.15s;
+  }
+  .btn-secondary:hover {
+    background-color: rgb(248 250 252);
+  }
+  .btn-danger {
+    color: rgb(220 38 38);
+    border: 1px solid rgb(254 215 215);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+  .btn-danger:hover {
+    background-color: rgb(254 242 242);
+  }
+  .input {
+    border: 1px solid rgb(203 213 225);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    outline: none;
+  }
+  .input:focus {
+    box-shadow: 0 0 0 2px #2457d6;
+  }
+}
