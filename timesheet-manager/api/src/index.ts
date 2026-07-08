@@ -32,8 +32,12 @@ async function main() {
   await app.register(fastifyCookie);
   // path:'/' is essential — without it the cookie defaults to the login route's
   // directory (/api/auth) and never reaches /api/dashboard, /api/timesheet, etc.
+  // cookieName is deliberately NOT the default 'session': early buggy deploys set a
+  // path-scoped 'session' cookie that lingers in browsers and shadows /api/auth/*.
+  // A distinct name means any stale 'session' cookie is ignored outright.
   await app.register(fastifySecureSession, {
     key: sessionKey,
+    cookieName: 'ts_session',
     cookie: { path: '/', httpOnly: true, sameSite: 'lax', secure: true },
   });
 
