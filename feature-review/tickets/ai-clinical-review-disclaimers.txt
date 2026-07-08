@@ -1,0 +1,78 @@
+Title: Add AI clinical-review disclaimers and metadata
+
+Phase: 1 - low-risk compliance
+Read first: _CONVENTIONS.md (frontend patterns).
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+AI-generated text is rendered in these medivault-cloud/frontend files (verified):
+- src/components/Modals/SummaryModal.svelte          (general/document summaries)
+- src/components/ui/Modals/SummaryModal.svelte       (duplicate summary modal)
+- src/components/documents/DocumentSummaryViewer.svelte
+- src/components/DigitalTwin.svelte                  (digital-twin summary cards)
+- src/components/ui/Modals/DocumentDetails.svelte
+- src/routes/(dashboard)/[[patient_uuid]]/risk-assessment/ (+ liver-fibrosis,
+  prediabetes, cardiovascular-disease subroutes)
+- src/routes/(dashboard)/[[patient_uuid]]/biomarkers/
+- src/routes/(dashboard)/policy-auditor/+page.svelte (clinician-facing)
+There is no shared disclaimer component; no AI output currently shows a disclaimer.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+The Patient Terms warn AI outputs may be incomplete/inaccurate and must be reviewed
+by a qualified healthcare professional. No consistent UI disclaimer exists.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope: one reusable disclaimer component placed at every AI-output surface above.
+Out of scope (defer): backend AI metadata and a clinician "reviewed" acknowledgement
+table — noted below as optional follow-up, do NOT build unless asked.
+This is a frontend-only ticket.
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION
+--------------------------------------------------------------------------------
+1. Create src/components/AIOutputDisclaimer.svelte:
+   - Small, muted, non-dismissible inline note (match existing Tailwind styling in the
+     surrounding components). Optional prop `compact` for tight card footers.
+   - Copy (final wording pending legal sign-off — see open decisions):
+     "AI-generated information may be incomplete or inaccurate. It does not replace
+      medical advice and should be reviewed by an appropriately qualified healthcare
+      professional before being relied upon."
+2. Import and place it directly beneath the AI text in each file listed in CONTEXT.
+   For modals, place inside the scroll area under the content, not in the footer buttons.
+   For the risk-assessment routes, place once beneath the AI interpretation/summary block.
+3. Do not change any AI generation, fetching, or existing layout logic.
+
+Grep guard: after editing, `grep -rL "AIOutputDisclaimer"` across the CONTEXT file list
+must return nothing (every listed surface imports it).
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- Every AI-output surface listed in CONTEXT renders the disclaimer.
+- The disclaimer text lives in ONE component; no route/modal hardcodes the copy.
+- No change to existing AI output behaviour, fetching, or streaming.
+- OKF/frontend note updated if a components inventory exists there.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Load each surface (open a document summary, a risk-assessment page, digital-twin card,
+  policy-auditor output) and confirm the disclaimer appears once, correctly placed.
+
+--------------------------------------------------------------------------------
+OPTIONAL FOLLOW-UP (separate ticket, do NOT build here)
+--------------------------------------------------------------------------------
+- Backend: add generated_by_ai / provider / model / generated_at / requires_clinical_review
+  to AI response payloads so clients can render conditionally.
+- ai_review_events table (user_uuid, patient_uuid, output_type, output_id, reviewed_at)
+  for clinician review acknowledgement.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Final disclaimer wording — product/legal to approve. Ship the copy above until then.

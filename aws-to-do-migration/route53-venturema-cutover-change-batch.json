@@ -1,0 +1,18 @@
+{
+  "Comment": "Cut over venturema.co.uk apex from AWS EC2 (3.249.250.224) to DigitalOcean host (142.93.41.146); www is CNAME-to-apex and follows automatically",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "venturema.co.uk.",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "142.93.41.146"
+          }
+        ]
+      }
+    }
+  ]
+}

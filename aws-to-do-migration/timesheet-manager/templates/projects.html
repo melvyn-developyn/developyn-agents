@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><h1>Projects</h1></section>
+{% if current_user.is_admin %}
+<section class="card">
+  <h2>Add project</h2>
+  <form method="post" action="{{ url_for('create_project') }}" class="inline-form">
+    <input name="client" placeholder="Client">
+    <input name="name" placeholder="Project" required>
+    <input name="currency" value="GBP">
+    <input type="number" step="0.25" name="maximum_hours" placeholder="Max hours">
+    <label class="checkbox"><input type="checkbox" name="is_maintenance"> Maintenance</label>
+    <button>Add</button>
+  </form>
+</section>
+{% endif %}
+<section class="card">
+  <table>
+    <thead><tr><th>Client</th><th>Project</th><th>Logged</th><th>Max</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for row in projects %}
+      <tr><td>{{ row.client }}</td><td>{{ row.name }}</td><td>{{ '%.2f'|format(row.logged_hours) }}</td><td>{{ row.maximum_hours or '' }}</td><td>{{ 'Active' if row.active else 'Inactive' }}</td><td>{% if current_user.is_admin %}<form method="post" action="{{ url_for('toggle_project', project_id=row.id) }}"><button>{{ 'Disable' if row.active else 'Enable' }}</button></form>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

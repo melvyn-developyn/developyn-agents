@@ -1,0 +1,138 @@
+Title: Add healthcare provider and lab ingestion foundations
+
+Phase: 3 - integrations
+Read first: _CONVENTIONS.md.
+Coordinates with wearable-device-data.txt on the shared medical_records source/provider column.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Manual upload is the only ingestion path: POST /upload/document
+  (medivault-cloud/backend/upload/index.js) → ClamAV scan + GCS + medical_records insert.
+- Existing third-party integrations are Veriff, Intelliprove, Apollo, Gemini/Anthropic,
+  GCS, ClamAV, OMOP — none ingest clinical records from labs/EHRs.
+- medical_records has no source/provenance columns today.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms mention third-party healthcare systems, labs, wearable providers, and technology
+providers as data sources. There is no ingestion framework or provenance metadata.
+
+--------------------------------------------------------------------------------
+SCOPE — foundations only, no real provider yet
+--------------------------------------------------------------------------------
+In scope: provenance metadata on records; tables to register integrations and per-patient
+connections; CRUD/status endpoints; reuse the upload utilities so an imported file becomes a
+normal medical_records row. Manual upload stays the unchanged default.
+Out of scope (blocked until a NAMED provider): provider-specific OAuth, FHIR/SMART, live
+sync, webhook payload parsing. Those are follow-up tickets once a provider is confirmed.
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-external-ingestion.js`:
+  alterTable('medical_records'):     // provenance (shared with wearable ticket — add once)
+    string('source').nullable()          // 'manual' (default at write time) | 'lab' | 'provider' | 'wearable'
+    string('source_provider').nullable()  // e.g. 'Acme Labs'
+    string('external_record_id').nullable()
+
+  createTable('external_integrations'):
+    id increments PK
+    uuid uuid unique defaultTo gen_random_uuid()
+    provider         string notNullable
+    integration_type string notNullable     // 'lab' | 'ehr' | 'wearable'
+    auth_type        string notNullable      // 'manual' | 'api_key' | 'oauth' | 'fhir'
+    status           string notNullable defaultTo 'inactive'  // 'inactive' | 'active'
+    config_metadata  jsonb nullable           // NO secrets in DB; store secret refs only
+    timestamps(true, true)
+    unique(['provider','integration_type'])
+
+  createTable('patient_external_connections'):
+    id increments PK
+    uuid uuid unique defaultTo gen_random_uuid()
+    user_uuid          uuid notNullable FK users.uuid onDelete CASCADE, index
+    provider           string notNullable
+    external_patient_id string nullable
+    status             string notNullable defaultTo 'pending'  // pending|connected|revoked
+    consent_at         timestamp nullable
+    revoked_at         timestamp nullable
+    timestamps(true, true)
+    unique(['user_uuid','provider'])
+
+  createTable('imported_records'):
+    id increments PK
+    patient_user_uuid   uuid notNullable FK users.uuid onDelete CASCADE, index
+    provider            string notNullable
+    external_record_id  string nullable
+    medical_record_uuid uuid nullable          // set when converted to a medical_records row
+    payload_location    string nullable         // GCS key of the raw payload, not inline blob
+    status              string notNullable defaultTo 'received'  // received|converted|failed
+    error_message       text nullable
+    imported_at         timestamp defaultTo now
+
+--------------------------------------------------------------------------------
+BACKEND — new route folder medivault-cloud/backend/integrations/index.js
+--------------------------------------------------------------------------------
+Register prefix '/integrations'. onRequest jwtVerify.
+  GET  /integrations                     -> available integrations + this user's connections/status.
+  POST /integrations/:provider/connect   -> create/activate a patient_external_connections row
+                                           (status pending/connected, consent_at). v1 is a
+                                           metadata handshake only — no external OAuth call.
+  POST /integrations/:provider/disconnect-> status revoked, revoked_at=now.
+  GET  /integrations/:provider/status    -> this user's connection status.
+Import path: add an internal/admin import that, given a fetched lab/provider file, calls the
+EXISTING upload utilities (the same code POST /upload/document uses) to create a
+medical_records row with source='lab'|'provider', source_provider, external_record_id, and
+links the imported_records row (status 'converted', medical_record_uuid set). Do NOT
+duplicate the ClamAV/GCS/insert logic — factor it into a shared helper if not already, and
+reuse it.
+
+Also: on normal manual upload, set source='manual' by default so provenance is always
+populated going forward.
+
+--------------------------------------------------------------------------------
+FRONTEND — medivault-cloud
+--------------------------------------------------------------------------------
+- "Connected Services" page listing available integrations with status + connect/disconnect
+  (GET /integrations, POST connect/disconnect). v1 can show providers as "Coming soon" until
+  a real one is configured.
+- Manual upload: add optional source/provider fields so a user can label where a document
+  came from.
+
+--------------------------------------------------------------------------------
+ADMIN — vitaspan-admin-dashboard / admin-backend (only when a real provider needs config)
+--------------------------------------------------------------------------------
+- Clinic-level integration settings (external_integrations config_metadata; secrets via env/
+  secret manager, never in DB) — build only when a named provider requires managed credentials.
+- Failed-import log view reading imported_records where status='failed'.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- Records can carry source/source_provider/external_record_id provenance; manual uploads
+  default to source='manual'.
+- external_integrations and patient_external_connections rows can be created/read/revoked
+  via the API.
+- The import path produces a normal medical_records row via the SHARED upload utilities and
+  links imported_records (status 'converted', medical_record_uuid set).
+- Manual upload remains available and unchanged for normal users.
+- No provider-specific OAuth/FHIR code is added in this ticket.
+- OKF note added for /integrations.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- Connect then disconnect a placeholder provider (status transitions pending→connected→revoked).
+- Run the import helper on a sample file → a medical_records row appears with source set and an
+  imported_records row marked converted. Confirm a normal manual upload still works and now has
+  source='manual'.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- First real provider/lab — must be named before OAuth/FHIR follow-up tickets.
+- Whether provenance columns live on medical_records (this ticket) or a side table. Default:
+  columns on medical_records (simplest; shared with the wearable ticket).
+- FHIR/SMART-on-FHIR is a separate follow-up ticket once a provider supports it.

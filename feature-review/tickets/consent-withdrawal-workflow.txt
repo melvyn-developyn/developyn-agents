@@ -1,0 +1,131 @@
+Title: Implement patient consent withdrawal workflow
+
+Phase: 1 - low-risk compliance
+Read first: _CONVENTIONS.md.
+Aligns with: account-closure-deletion-requests.txt — use the SAME admin queue style and,
+where practical, one shared "patient requests" admin surface rather than two parallel queues.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Signup captures medical_consent (boolean) in
+  medivault-cloud/backend/authentication/index.js (patient signup handler ~line 1425).
+- Consent UI components exist under medivault-cloud/frontend/src/components/consent/
+  (cookie banner) and Modals/ShareConsentModal.svelte — these are point-of-action
+  consents, not a durable per-user consent ledger.
+- There is NO user_consents table and no way to view or withdraw consent after signup.
+- Patient settings frontend: src/routes/(dashboard)/my-profile/.
+- Patient profile backend: medivault-cloud/backend/profile/index.js.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms say patients may withdraw consent where legally permitted (which may disable
+features). There is consent capture and access revocation, but no consent ledger and no
+withdrawal workflow.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope: a durable consent ledger + a withdrawal REQUEST workflow (not instant
+automated restriction). Patient can view consent state and request withdrawal; support
+reviews and applies consequences manually.
+Out of scope: automatically restricting/deleting data on withdrawal. No hard deletion.
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-user-consents.js`:
+  createTable('user_consents'):
+    id           increments PK
+    user_uuid    uuid notNullable FK users.uuid onDelete CASCADE, index
+    consent_type string notNullable    // 'medical_processing'|'marketing'|'ai_assistance'|'privacy_notice_ack'
+    status       string notNullable defaultTo 'granted'   // 'granted' | 'withdrawn'
+    version      string nullable
+    granted_at   timestamp nullable
+    withdrawn_at timestamp nullable
+    source       string nullable        // 'signup' | 'profile' | 'admin'
+    timestamps(true, true)
+    unique(['user_uuid','consent_type'])
+
+  createTable('consent_withdrawal_requests'):
+    id           increments PK
+    uuid         uuid unique defaultTo gen_random_uuid()
+    user_uuid    uuid notNullable FK users.uuid onDelete CASCADE, index
+    consent_type string notNullable
+    reason       text nullable
+    status       string notNullable defaultTo 'pending'   // pending|completed|rejected
+    reviewed_by  uuid nullable          // admin_user.uuid
+    reviewed_at  timestamp nullable
+    outcome_note text nullable
+    timestamps(true, true)
+
+Signup change: when medical_consent is accepted at signup, upsert a user_consents row
+(consent_type='medical_processing', status='granted', source='signup') in the signup
+transaction so the ledger is populated from day one.
+
+--------------------------------------------------------------------------------
+BACKEND — patient endpoints (medivault-cloud/backend/profile/index.js)
+--------------------------------------------------------------------------------
+GET /profile/consents
+  - Return the caller's user_consents rows (defaulting unseen types to an implicit
+    'granted'/'not_set' as product decides) plus any open withdrawal requests.
+
+POST /profile/consents/:consent_type/withdraw-request
+  params: consent_type in the allowed enum.
+  body: typebox.Object({ reason: typebox.Optional(typebox.String()) })
+  - Reject (409) if an open request already exists for that consent_type.
+  - Insert a consent_withdrawal_requests row (status 'pending'). Do NOT change access yet.
+  - Notify support/admin (reuse the email helper) if that is cheap; otherwise the admin
+    queue is the notification.
+
+Do NOT immediately restrict the account. Restriction is a manual admin action on review
+(see decisions) to avoid accidental self-lockout and preserve retention obligations.
+
+--------------------------------------------------------------------------------
+BACKEND — admin (admin-backend)
+--------------------------------------------------------------------------------
+Extend the shared patient-requests admin surface (see account-closure ticket) OR add
+admin-backend/account-requests to also serve consent_withdrawal_requests. Provide:
+  GET  list of pending consent withdrawal requests (filterable), patient joined.
+  POST review: status completed/rejected + outcome_note, reviewed_by/reviewed_at.
+  On 'completed' for medical_processing: set the user_consents row to withdrawn
+  (status='withdrawn', withdrawn_at=now) and, if product requires, flip the patient's
+  medical-data access flag. Keep records; do not delete.
+Gate with fastify.authenticate('clinic_admin').
+
+--------------------------------------------------------------------------------
+FRONTEND — medivault-cloud (my-profile)
+--------------------------------------------------------------------------------
+- Add a "Privacy & Consent" section under src/routes/(dashboard)/my-profile/.
+- List each consent type with current state and granted/withdrawn dates (GET /profile/consents).
+- "Withdraw consent" action per type -> confirm dialog with plain-language consequences
+  (may disable features; does not delete retained medical records) -> POST withdraw-request.
+- After submit, show the request as pending.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- A patient can view current consent state with timestamps.
+- A patient can submit a withdrawal request; a duplicate open request is rejected (409).
+- The request persists and is visible to the patient as pending.
+- Consequences copy is shown before confirming.
+- No data is deleted or auto-restricted by the patient-facing flow.
+- Admin/support can see and resolve pending withdrawal requests.
+- Signup writes an initial medical_processing consent row.
+- OKF note updated for /profile/consents.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- Signup writes a medical_processing granted row; withdraw-request creates a pending row;
+  duplicate returns 409; admin completes it -> consent row becomes withdrawn; no deletions.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Exact consent_type set and which are withdrawable. Default set is listed above.
+- On completed medical_processing withdrawal, restrict feature_medical_data access? Default:
+  yes, flip the access flag but keep all records. Confirm with legal/product.
+- Whether consent + closure share one admin queue. Recommended: yes, one surface.

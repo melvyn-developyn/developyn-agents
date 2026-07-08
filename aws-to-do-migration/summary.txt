@@ -1,0 +1,392 @@
+Summary of work
+===============
+
+Project: Migrate AWS-hosted WordPress EC2 sites onto a Docker-based DigitalOcean host, then safely upgrade and decommission AWS resources to reduce cost.
+
+Primary DigitalOcean host:
+- root@142.93.41.146
+- Ubuntu 24.04.3 LTS
+- Hostname: ubuntu-s-4vcpu-8gb-lon1
+
+Core stack paths on DigitalOcean:
+- WordPress Compose stack: /srv/wordpress/compose/docker-compose.yml
+- WordPress env/secrets: /srv/wordpress/compose/.env
+- Site files: /srv/wordpress/sites/
+- MariaDB data: /srv/wordpress/db/mariadb/
+- Backups: /srv/wordpress/backups/
+- Caddy config: /etc/caddy/Caddyfile
+- Caddy per-site logs: /var/log/caddy/sites/
+- Beszel monitoring Compose: /srv/wordpress/monitoring/beszel/docker-compose.yml
+- Beszel data: /srv/wordpress/monitoring/beszel/data/
+
+Running containers on DigitalOcean:
+- wp-ace-sections    -> 127.0.0.1:8081, wordpress:php8.1-apache
+- wp-bradleygas      -> 127.0.0.1:8082, wordpress:php8.1-apache
+- wp-pedmore         -> 127.0.0.1:8083, wordpress:php8.4-apache
+- wp-oakhill         -> 127.0.0.1:8084, wordpress:php7.4-apache
+- wp-meirglobal      -> 127.0.0.1:8085, wordpress:php7.4-apache
+- wp-aps-ltd         -> 127.0.0.1:8086, wordpress:php7.4-apache
+- wp-telehandlers    -> 127.0.0.1:8087, wordpress:php7.4-apache
+- wp-ledgability     -> 127.0.0.1:8088, wordpress:php8.1-apache
+- wp-venturema       -> 127.0.0.1:8089, wordpress:php7.4-apache
+- wp-nationalhire    -> 127.0.0.1:8091, wordpress:php7.4-apache
+- wp-igs             -> 127.0.0.1:8092, wordpress:php7.4-apache
+- wp-developyn        -> 127.0.0.1:8093, wordpress:php7.4-apache
+- wp-mariadb         -> mariadb:10.6
+
+Monitoring containers:
+- beszel
+- beszel-agent
+
+Beszel dashboard:
+- https://monitor.developyn.com
+
+Completed work
+--------------
+
+AWS cleanup:
+- Deleted approved AWS Serverless/CloudFormation cleanup scope in eu-west-1, including *webshop*, boilerfix-service-dev, developynblog-dev, stripe-service-dev, and stripe-service-production stacks.
+- Emptied blocked Serverless deployment buckets before stack deletion.
+- Verified matching Lambda functions for cleaned scopes are gone.
+- Audited June AWS bill and identified major costs from public IPv4, EBS, snapshots, WAF, and Route 53.
+- Audited 12 running WordPress EC2 instances in eu-west-1.
+- Confirmed SSH access as ubuntu to all 12 WordPress servers after loading local SSH keys.
+- Removed a roughly 9G IGS WordPress debug log and disabled debug logging there.
+
+DigitalOcean host setup:
+- Created and configured the DigitalOcean host with Docker, Docker Compose, Caddy, UFW, swap, Docker log rotation, and journald retention.
+- Installed Beszel monitoring for host and containers.
+- Enabled per-site Caddy access logs.
+- Created DNS migration plan in dns-update-plan-for-developyn-and-pedmore.txt.
+
+Migrated and cut over live sites:
+- acesectionsltd.co.uk
+- bradleygasservices.co.uk
+- pedmoreroofing.com
+- developyn.com
+
+Migrated but not cut over yet:
+- oakhilloptical.co.uk
+- meirglobal.org
+- aps-ltd.com
+- telehandlers.co.uk
+- ledgability.co.uk
+- venturema.co.uk
+- nationalhiresolutions.co.uk
+- igs-uk.org
+
+Caddy and HTTPS:
+- Configured Caddy HTTPS for live sites and monitoring.
+- Added missing WordPress .htaccess rewrite rules for Ace and Bradley.
+- HTTP-only Caddy blocks are configured for all staged but not cut-over sites.
+
+Bradley upgrade:
+- Bradley has been upgraded and verified.
+- Backup before upgrade: /srv/wordpress/backups/bradleygas/pre-upgrade-20260630205743
+- Latest backup pointer: /srv/wordpress/backups/bradleygas/latest-pre-upgrade-backup.txt
+- Changes completed:
+  - Disabled WordPress debug logging.
+  - Updated WordPress core from 6.1.10 to 7.0.
+  - Updated all plugins and themes.
+  - Fixed stale wp-super-cache WPCACHEHOME path from /var/www/wordpress/wp-content/plugins/wp-super-cache/ to /var/www/html/wp-content/plugins/wp-super-cache/.
+  - Switched only Bradley from wordpress:php7.4-apache to wordpress:php8.1-apache.
+- Verification completed:
+  - wp-bradleygas running on PHP 8.1.34.
+  - WordPress reports version 7.0.
+  - Homepage returns 200.
+  - www returns redirect 301.
+  - /wp-admin/ redirects to login with 302.
+  - /wp-json/ returns 200.
+  - sitemap_index.xml returns 200.
+  - CSS asset returns 200.
+  - No post-switch 5xx found.
+  - No recent PHP fatal, parse, or uncaught errors found in container logs.
+
+Pedmore cutover:
+- Pedmore has been cut over in Route 53.
+- pedmoreroofing.com. A 142.93.41.146
+- www.pedmoreroofing.com. CNAME pedmoreroofing.com
+- Old AWS IP: 3.249.101.94
+- Route 53 change ID: /change/C07201272HSFBEU983RI5, reported INSYNC.
+- Caddy HTTPS is enabled for pedmoreroofing.com and www.pedmoreroofing.com.
+- Fresh pre-cutover backup: /srv/wordpress/backups/pedmore/pre-cutover-20260630220620
+- Latest backup pointer: /srv/wordpress/backups/pedmore/latest-pre-cutover-backup.txt
+- Pedmore debug logging is disabled and WP_HOME/WP_SITEURL are set to https://pedmoreroofing.com.
+- User later moved NS delegation back to Crazy Domains and deleted the Route 53 zone. Crazy Domains now answers with the correct A record. Some local resolvers may briefly cache stale records during propagation.
+
+Bradley footer change:
+- Updated Bradley footer from "Proudly powered by WordPress" to "Proudly powered by Developyn" with a link to https://developyn.com.
+- Implemented as a Bradley mu-plugin at /srv/wordpress/sites/bradleygas/html/wp-content/mu-plugins/developyn-footer-credit.php.
+- Verified live homepage contains the new linked text.
+
+Ace upgrade:
+- Ace has been upgraded and verified.
+- Backup before upgrade: /srv/wordpress/backups/ace-sections/pre-upgrade-20260701021347
+- Latest backup pointer: /srv/wordpress/backups/ace-sections/latest-pre-upgrade-backup.txt
+- Changes completed:
+  - Disabled WordPress debug logging.
+  - Updated WordPress core from 5.7.15 to 7.0.
+  - Updated all plugins and themes.
+  - Switched only Ace from wordpress:php7.4-apache to wordpress:php8.1-apache.
+- Verification completed:
+  - wp-ace-sections running on PHP 8.1.34.
+  - WordPress reports version 7.0.
+  - Homepage returns 200.
+  - www returns 200.
+  - /wp-admin/ redirects to login with 302.
+  - /wp-json/ returns 200.
+  - sitemap.xml returns 200.
+  - No post-switch 5xx found.
+  - No recent PHP fatal, parse, or uncaught errors found in container logs.
+
+Pedmore upgrade:
+- Pedmore has been upgraded and verified.
+- Backup before upgrade: /srv/wordpress/backups/pedmore/pre-upgrade-20260701034046
+- Latest backup pointer: /srv/wordpress/backups/pedmore/latest-pre-upgrade-backup.txt
+- Changes completed:
+  - Disabled WordPress debug logging.
+  - Updated WordPress core from 6.1.10 to 7.0.
+  - Updated all plugins and themes.
+  - Switched only Pedmore from wordpress:php7.4-apache to wordpress:php8.4-apache.
+- Verification completed:
+  - wp-pedmore running on PHP 8.4.22.
+  - WordPress reports version 7.0.
+  - Public homepage renders successfully from outside the server.
+  - Public www hostname renders successfully from outside the server.
+  - Direct container checks passed: homepage redirects as expected, /wp-admin/ redirects to login, and /wp-json/ returns 200.
+  - sitemap_index.xml and sitemap.xml return 200.
+  - No recent PHP fatal, parse, or uncaught errors found in container logs.
+
+Staged site details
+-------------------
+
+Meir Global (meirglobal.org):
+- Old AWS IP: 34.244.46.39
+- Container: wp-meirglobal on 127.0.0.1:8085
+- Site files: /srv/wordpress/sites/meirglobal/html
+- Database: meirglobal in wp-mariadb
+- Caddy block is HTTP-only for meirglobal.org and www.meirglobal.org.
+- WordPress reports version 5.6.17; PHP container is 7.4.
+- Debug logging disabled in staged wp-config.php.
+- Standard WordPress .htaccess rewrite rules added because the migrated copy had no .htaccess.
+- Staged backup: /srv/wordpress/backups/meirglobal/staged-20260630230914
+- Latest staged backup pointer: /srv/wordpress/backups/meirglobal/latest-staged-backup.txt
+- Staged checks passed via host-header local Caddy: homepage 200, /wp-admin/ 302, /wp-json/ 200, no recent PHP fatal/parse/uncaught logs.
+- Future DNS records needed: apex A -> 142.93.41.146; www CNAME to apex or A -> 142.93.41.146.
+
+APS (aps-ltd.com):
+- Old AWS IP: 3.250.158.116
+- Container: wp-aps-ltd on 127.0.0.1:8086
+- Database: aps_ltd
+- WordPress 6.8.5
+- Staged URLs intentionally set to http://aps-ltd.com for local host-header testing.
+- Staged backup: /srv/wordpress/backups/aps-ltd/staged-20260630232707
+
+Telehandlers (telehandlers.co.uk):
+- Old AWS IP: 52.211.87.147
+- Container: wp-telehandlers on 127.0.0.1:8087
+- Database: telehandlers
+- WordPress 6.6.5
+- Staged backup: /srv/wordpress/backups/telehandlers/staged-20260630232729
+
+Ledgability (ledgability.co.uk):
+- Old AWS IP: 54.217.50.179
+- Container: wp-ledgability on 127.0.0.1:8088
+- Database: ledgability
+- WordPress 6.8.5
+- PHP container 8.1 to match source PHP 8.1.
+- Staged backup: /srv/wordpress/backups/ledgability/staged-20260630233429
+
+VentureMMA (venturema.co.uk):
+- Old AWS IP: 3.249.250.224
+- Container: wp-venturema on 127.0.0.1:8089
+- Database: venturema
+- WordPress 6.3.8
+- AWS instance/tag referred to this as venturemma, but the live domain/config is venturema.co.uk.
+- Staged backup: /srv/wordpress/backups/venturema/staged-20260630233524
+
+National Hire Solutions (nationalhiresolutions.co.uk):
+- Old AWS IP: 34.241.136.6
+- Container: wp-nationalhire on 127.0.0.1:8091
+- Database: nationalhire
+- WordPress 6.9.4
+- Staged URLs intentionally set to http://nationalhiresolutions.co.uk for local host-header testing.
+- Staged backup: /srv/wordpress/backups/nationalhire/staged-20260630234655
+
+IGS (igs-uk.org):
+- Old AWS IP: 54.246.37.144
+- Container: wp-igs on 127.0.0.1:8092
+- Database: igs
+- WordPress 6.4.8
+- IGS debug logging was already disabled and no large debug log remains.
+- Staged wp-config.php memory limit was raised from 15M to 256M because the migrated copy hit PHP memory fatals during local checks.
+- Staged backup: /srv/wordpress/backups/igs/staged-20260701000352
+
+Developyn (developyn.com):
+- Old AWS IP: 18.201.140.243
+- Container: wp-developyn on 127.0.0.1:8093
+- Database: developyn
+- WordPress 6.9.4
+- Cut over in Route 53 to the DigitalOcean host.
+- developyn.com A 142.93.41.146
+- www.developyn.com CNAME developyn.com.
+- Route 53 change ID: /change/C07171083W2SIC03XBQ6D, reported INSYNC.
+- Caddy HTTPS enabled for apex and www.
+- WP_HOME/WP_SITEURL set to https://developyn.com.
+- Staged backup: /srv/wordpress/backups/developyn/staged-20260630235718
+- Fresh pre-cutover backup: /srv/wordpress/backups/developyn/pre-cutover-20260707233556
+- Latest pre-cutover backup pointer: /srv/wordpress/backups/developyn/latest-pre-cutover-backup.txt
+- Public checks passed: homepage 200, www canonicalizes to apex with 200, /wp-json/ 200, /sitemap.xml 200.
+- Real Let's Encrypt certificates issued for apex and www.
+- No recent PHP fatal, parse, uncaught, memory, or Caddy 5xx errors found after cutover.
+
+For all staged but not cut-over sites:
+- Caddy blocks are HTTP-only for apex and www hostnames.
+- No DNS or Route 53 changes were made during staging.
+- Standard WordPress .htaccess rewrite rules were added/confirmed.
+- Stale wp-super-cache paths from /var/www/wordpress were replaced with /var/www/html where present.
+- Debug logging was disabled in staged wp-config.php.
+- Staged checks passed via host-header local Caddy: homepage 200, /wp-json/ 200, login/admin reachable, and no recent PHP fatal/parse/uncaught logs.
+- Future DNS records generally needed: apex A -> 142.93.41.146; www CNAME to apex or A -> 142.93.41.146.
+
+Important DNS context
+---------------------
+
+Do not change DNS or Route 53 in this session without explicit user permission. Current phase is server-side porting only.
+
+Pedmore has been cut over in Route 53 (zone later deleted by user after moving NS to Crazy Domains):
+- pedmoreroofing.com. A 142.93.41.146
+- www.pedmoreroofing.com. CNAME pedmoreroofing.com
+- Old AWS IP: 3.249.101.94
+- Route 53 change ID: /change/C07201272HSFBEU983RI5, reported INSYNC.
+- Caddy HTTPS is enabled for pedmoreroofing.com and www.pedmoreroofing.com.
+
+Oakhill DNS is hosted at One.com:
+- Old IP: 54.155.196.25
+- Target new IP: 142.93.41.146
+- User must update One.com when ready.
+
+developyn.com DNS migration is high-risk:
+- Current Route 53 zone has about 153 records.
+- Includes Google/Zoho mail, SES DKIM, ACM validation, CloudFront aliases, and many app/client/WordPress records.
+- Do not hand-copy casually or migrate from memory.
+
+DNS review (as of 2026-07-01)
+-----------------------------
+
+Already pointing to new server (142.93.41.146):
+
+| Domain                        | Apex             | www                  |
+|-------------------------------|------------------|----------------------|
+| acesectionsltd.co.uk          | ✓ 142.93.41.146  | CNAME → apex ✓       |
+| bradleygasservices.co.uk      | ✓ 142.93.41.146  | CNAME → apex ✓       |
+| pedmoreroofing.com            | ✓ 142.93.41.146  | CNAME → apex ✓       |
+
+NOT yet pointed to new server (still old AWS):
+
+| Domain                        | Current IP       | DNS provider | www                          |
+|-------------------------------|------------------|--------------|------------------------------|
+| oakhilloptical.co.uk          | 54.155.196.25    | One.com      | CNAME → apex (old)           |
+| meirglobal.org                | 34.244.46.39     | Unknown      | A → old                      |
+| aps-ltd.com                   | 3.250.158.116    | Unknown      | CNAME → apex (old)           |
+| telehandlers.co.uk            | 52.211.87.147    | Unknown      | CNAME → apex (old)           |
+| ledgability.co.uk             | 54.217.50.179    | Unknown      | CNAME → apex (old)           |
+| venturema.co.uk              | 3.249.250.224    | Unknown      | CNAME → apex (old)           |
+| nationalhiresolutions.co.uk   | 34.241.136.6     | Unknown      | CNAME → apex (old)           |
+| igs-uk.org                    | 54.246.37.144    | Unknown      | CNAME → apex (old)           |
+| developyn.com                 | 142.93.41.146    | Route 53     | CNAME → apex ✓                   |
+
+Key observations:
+- 3 sites already cut over to the new server (Ace, Bradley, Pedmore).
+- 9 sites still on old AWS and ready for DNS cutover — all staged/verified on DigitalOcean.
+- developyn.com has been cut over to the new DigitalOcean host in Route 53; apex points to 142.93.41.146 and www is CNAME-to-apex.
+- Oakhill DNS is at One.com — needs client to share access.
+- For the remaining 7 sites, need to identify each domain's DNS provider/registrar and update the apex A record to 142.93.41.146. Most use www CNAME-to-apex, so www will follow automatically.
+
+Old AWS WordPress EC2s
+----------------------
+
+Old source EC2s should remain running temporarily for rollback until migrated sites are stable.
+
+Known old instances/IPs:
+- wordpress-ace-sections          34.255.195.223
+- wordpress-bradley_gas_services  34.245.102.186
+- wordpress-meirglobal.org        34.244.46.39
+- wordpress-Pedmoreroofing        3.249.101.94
+- wordpress-ledgability.co.uk     54.217.50.179
+- wordpress-Oakhill               54.155.196.25
+- wordpress-igs                   54.246.37.144
+- wordpress-developyn.com         18.201.140.243
+- wordpress-venturemma            3.249.250.224
+- wordpress-nationalhiresolutions.co.uk  34.241.136.6
+- wordpress-aps-ltd.com           3.250.158.116
+- wordpress-telehandlers          52.211.87.147
+
+Next steps
+----------
+
+1. Monitor Pedmore briefly after the PHP 8.4 upgrade.
+2. Finish testing Oakhill container before DNS cutover once One.com access is available.
+3. Collect DNS access/details from clients for staged sites and plan cutovers one at a time.
+4. Coordinate Oakhill DNS change through One.com once access is available.
+5. After migrated/cut-over sites are stable for several days, stop old AWS EC2 instances for a rollback window, then terminate and release public IPv4s later.
+6. Treat developyn.com DNS as a separate high-risk migration because of mail, SES, ACM, CloudFront, app/client records, and many subdomains.
+
+Operational notes
+-----------------
+
+- Use safe, incremental migrations with backups and rollback.
+- User accepts a short 5-10 minute write-freeze/data-loss window for site cutovers.
+- Use Caddy for reverse proxy and HTTPS; no Certbot is needed.
+- Caddy issues certificates automatically when hostname blocks omit http://.
+- If DNS has not propagated, Let's Encrypt can fail or rate-limit temporarily.
+- Do not lose uploaded/user files on content-heavy sites such as IGS.
+- Local Mac /etc/hosts edits are blocked through tools because sudo requires an interactive password.
+- Prefer AWS CLI against the configured default AWS account/profile.
+- AWS account: 630423658649; IAM user: arn:aws:iam::630423658649:user/Melvyn.
+- Zsh quoting can be fragile for complex remote commands; use simpler commands or bash -lc remotely when needed.
+
+Session update (2026-07-08)
+---------------------------
+
+Cut over to DigitalOcean this session:
+- venturema.co.uk  - DNS moved OFF Route 53 to DigitalOcean DNS (Developyn team) to drop the R53 hosted-zone fee; owner switched registrar NS (123reg) to ns1/2/3.digitalocean.com. Google Workspace mail (MX/SPF/DKIM) replicated exactly. Fresh content re-sync (DB + uploads) done before cutover. HTTPS live. Also added Mailgun/LeadConnector records for the replies.venturema.co.uk subdomain in DO DNS.
+- nationalhiresolutions.co.uk - Route 53 apex-A cutover (zone Z07992572EQTSGGNM9OMF). Uploads re-synced; DB was identical (Gravity Forms entries 1158/2026-06-16 matched both sides). M365 + MailerLite mail untouched. HTTPS live.
+- igs-uk.org - Route 53 apex-A cutover (zone Z022184422OV4MZ6A5POL). DB re-synced (AWS had edits to 2026-07-03). Hit a redirect loop - fixed (see reverse-proxy note). hosts.co.uk + sendersrv mail untouched. HTTPS live.
+
+DNS management of remaining staged sites (verified 2026-07-08) - NOT self-serve, need owner/registrar login:
+- meirglobal.org        -> IONOS (registrar + DNS). NOTE: the WordPress site is .org; meirglobal.com is a SEPARATE live domain (Fasthosts frame-forward + Google mail) - do NOT delete its R53 zone.
+- oakhilloptical.co.uk  -> One.com
+- aps-ltd.com           -> Heart Internet (mainnameserver.com), registrar Mesh Digital; mail = Microsoft 365
+- telehandlers.co.uk    -> GoDaddy (domaincontrol.com)
+- ledgability.co.uk     -> GoDaddy (domaincontrol.com)
+Cutover for these = owner changes apex A (+ www) to 142.93.41.146 in that control panel; leave all mail records alone.
+
+Reverse-proxy HTTPS detection (REQUIRED at every cutover)
+---------------------------------------------------------
+
+Caddy terminates TLS and reverse-proxies to the WP container over plain HTTP (with header_up X-Forwarded-Proto https). WordPress checks $_SERVER['HTTPS'], which is empty on that inner HTTP hop, so once WP_HOME/WP_SITEURL are https it fires an http->https canonical redirect that loops forever (front-end loops; /wp-json/ still 200 because REST skips canonical). IGS hit this.
+
+Fix - add to each site's wp-config.php (above the require_once wp-settings.php line):
+
+    /* Honor reverse-proxy TLS (Caddy terminates HTTPS) */
+    if ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
+        $_SERVER['HTTPS'] = 'on';
+    }
+
+Add this as part of the HTTPS-enable step for every remaining cutover, not just when a loop appears. Also check the DB `home`/`siteurl` options don't still point at a dev/staging domain (IGS had home = http://melvyn.wordpress.developyn.com); correct them.
+
+Container resource tuning (applied 2026-07-08)
+----------------------------------------------
+
+All WP containers run wordpress:*-apache = Apache prefork + mod_php, so RAM scales with the number of Apache children. Defaults (StartServers 5 / MaxSpareServers 10 / MaxConnectionsPerChild 0) left busy sites holding ~10 idle children (pedmore was 755MB idle). Tuned down; freed ~2GB (host used 3.8G -> 1.9G, available 4.0G -> 5.9G).
+
+- Shared drop-in files bind-mounted read-only into every WP service via docker-compose.yml:
+  - /srv/wordpress/config/apache-tune.conf -> /etc/apache2/conf-enabled/zz-tune.conf
+      StartServers 2, MinSpareServers 2, MaxSpareServers 4, MaxRequestWorkers 24, MaxConnectionsPerChild 500
+  - /srv/wordpress/config/opcache-tune.ini -> /usr/local/etc/php/conf.d/zz-opcache-tune.ini
+      opcache.memory_consumption=48 (was 128), interned_strings_buffer=8, max_accelerated_files=4000
+- mem_limit: 512m added per WP service (runaway cap).
+- New sites: add the same two volume mounts + mem_limit block to their compose service.
+- To re-tune: edit the two files, then docker compose restart. To roll back: restore docker-compose.yml.bak-tune-<ts> and docker compose up -d.
+- Not done (revisit only if packing many more sites): mod_php -> PHP-FPM pm=ondemand, which drops idle sites to ~zero workers but means moving off the apache image to fpm behind Caddy php_fastcgi.

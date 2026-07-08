@@ -1,0 +1,135 @@
+Title: Implement account suspension and termination workflow
+
+Phase: 1 - core account status; Phase 2 - admin history/audit UI
+Read first: _CONVENTIONS.md.
+Coordinates with: account-closure-deletion-requests.txt (shares account_status).
+IMPLEMENT THIS TICKET FIRST of the two — it introduces the account_status column.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Patient/clinician auth: medivault-cloud/backend/authentication/index.js.
+  Relevant handlers: GET /refresh-token (line ~126, signs a 15m JWT from the users
+  row), POST /login (~196), POST /verify-2fa (~857). The whole users row is signed
+  into the JWT via fastify.jwt.sign(user, ...).
+- Admin auth: admin-backend/auth/index.js (POST /login fetches admin_user joined to
+  admin_access_level, signs JWT ~line 190).
+- There is NO account_status column on users or admin_user today.
+- Because refresh tokens are 15m, checking account_status at login + refresh naturally
+  bounds any active session to <=15 min after suspension. That is the intended window;
+  a per-request check is optional and only needed if <15m is required (see open decisions).
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms allow suspension/termination for breach, fraud, security risk, or legal reasons.
+Today there are ad-hoc delete/remove actions but no status workflow that disables access
+while preserving records and an audit trail.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope (Phase 1): account_status column + events table; login/2fa/refresh reject
+suspended/closed; admin endpoints to suspend/reinstate/close.
+In scope (Phase 2): admin dashboard status controls + event history UI.
+Out of scope: deleting any user rows or records. Suspension is status-only.
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-account-status.js`:
+  alterTable('users'):
+    string('account_status').notNullable().defaultTo('active')
+    // allowed: 'active' | 'suspended' | 'closed' | 'closure_requested'
+  alterTable('admin_user'):
+    string('account_status').notNullable().defaultTo('active')  // 'active' | 'suspended'
+
+  createTable('account_status_events'):
+    id                increments PK
+    target_user_uuid  uuid notNullable, index          // no FK: may target users OR admin_user
+    target_user_type  string notNullable               // 'patient' | 'clinician' | 'admin'
+    previous_status   string notNullable
+    new_status        string notNullable
+    reason_code       string notNullable               // see open decisions for allowed set
+    note              text nullable
+    actor_uuid        uuid notNullable                 // acting admin_user.uuid
+    created_at        timestamp defaultTo now
+
+Down migration drops account_status_events, drops the two columns.
+
+--------------------------------------------------------------------------------
+BACKEND — reject blocked accounts (medivault-cloud/backend/authentication/index.js)
+--------------------------------------------------------------------------------
+Add a single guard used by POST /login, POST /verify-2fa, and GET /refresh-token:
+  after the users row is fetched, if account_status is 'suspended' or 'closed', return
+  403 with { error: 'account_suspended' | 'account_closed' } and do NOT sign a token.
+Ensure the account_status value is not leaked in an exploitable way but the code is
+distinct enough for the frontend to show the right page.
+
+--------------------------------------------------------------------------------
+BACKEND — admin control endpoints (admin-backend)
+--------------------------------------------------------------------------------
+New route folder admin-backend/status/index.js, registered with prefix '/status'.
+All routes gated with fastify.authenticate (see role rules below).
+
+POST /status/user/:user_uuid
+  onRequest: fastify.authenticate('super_user')   // clinic_admin allowed only for
+                                                  // users in the admin's clinic (see decisions)
+  body: typebox.Object({
+    new_status: typebox.Enum(['active','suspended','closed']),
+    reason_code: typebox.String(),
+    note: typebox.Optional(typebox.String())
+  })
+  - Load the target users row; compute previous_status.
+  - In a transaction: update users.account_status; insert account_status_events row with
+    actor_uuid = req.user.uuid, target_user_type from users.type.
+  - Reject no-op transitions (same status) with 400.
+
+GET /status/user/:user_uuid/history
+  onRequest: fastify.authenticate('clinic_admin')
+  - Return account_status_events for that user, newest first.
+
+(Admin-on-admin suspension can reuse the same pattern targeting admin_user; only
+super_user may suspend another admin. Keep it in the same route file.)
+
+--------------------------------------------------------------------------------
+FRONTEND
+--------------------------------------------------------------------------------
+medivault-cloud (patient app):
+  - On 403 account_suspended / account_closed from login/2fa/refresh, route to a static
+    page (e.g. src/routes/(welcome)/account-blocked/+page.svelte) with a neutral message
+    and support contact. Do not expose the reason_code or note.
+vitaspan-admin-dashboard (Phase 2):
+  - On the patient/clinician/admin detail pages (under
+    src/routes/dashboard/clinics/[clinic_id]/patients/ etc.), add a status control:
+    current status badge, a "Change status" action with status select + reason_code select
+    + optional note + confirm dialog (call POST /status/user/:uuid via src/http), and an
+    event-history list (GET .../history). Use the existing axios wrapper.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- Suspended and closed users cannot log in, pass 2FA, or refresh a token (403).
+- An existing session stops working within 15 minutes (next refresh fails).
+- Only authorised admins can change status; role is enforced server-side.
+- Every status change writes an account_status_events row with actor, reason, timestamps.
+- No user rows or medical records are deleted.
+- Reason/note captured; patient app shows a neutral blocked page.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- Suspend a test user via /status; confirm login and refresh both 403; reinstate; confirm
+  login works; confirm two account_status_events rows written with correct previous/new.
+- Confirm a clinic_staff token is rejected (403) from the status endpoints.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Role scope: super_user for all accounts; may clinic_admin suspend only their own
+  clinic's patients/clinicians? Default: super_user only for Phase 1, add clinic scoping later.
+- Allowed reason_code set (e.g. terms_breach, fraud, security_risk, legal_request,
+  user_request). Default to that list.
+- Is a <15min hard cut required? If yes, add a token_version column and check it on the
+  global authenticated pre-handler. Default: no, 15m refresh window is acceptable.

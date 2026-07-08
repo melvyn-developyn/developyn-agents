@@ -1,0 +1,86 @@
+Title: Support wearable device information upload and tracking
+
+Phase: 3 - integrations
+Read first: _CONVENTIONS.md.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- users already has `has_connected_wearables boolean DEFAULT false`
+  (medivault-cloud/backend/database-utils/base.sql:3293; selected in several auth queries
+  in authentication/index.js). Nothing sets it true today.
+- Upload pipeline: POST /upload/document (medivault-cloud/backend/upload/index.js:66) does
+  ClamAV scan + GCS storage + inserts a medical_records row with user_uuid and
+  record_type_id. Record types live in the record_type table; document types via
+  GET /upload/document-types.
+- To add a new record type, follow the seed migration pattern in
+  20260701123641_add_notes_record_type.js (idempotent INSERT ... WHERE NOT EXISTS + serial
+  reset). This is exactly how 'Wearable Data' should be added.
+- Data-trends / biomarkers frontend routes:
+  medivault-cloud/frontend/src/routes/(dashboard)/[[patient_uuid]]/biomarkers/ and profile/.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms list wearable device information as uploadable health info. There is a
+has_connected_wearables flag but no way to add wearable data.
+
+--------------------------------------------------------------------------------
+SCOPE — deliberately minimal (Terms only require wearable info be uploadable)
+--------------------------------------------------------------------------------
+In scope (v1): add a 'Wearable Data' record type; let patients upload wearable export files
+through the EXISTING upload pipeline tagged as wearable; flip has_connected_wearables when a
+wearable record exists; make wearable uploads findable.
+Out of scope (do NOT build without a named provider): OAuth to Fitbit/Garmin/Oura/Apple
+Health, structured metric parsing, live sync. Those are listed below as a future ticket.
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION
+--------------------------------------------------------------------------------
+1. Migration `<timestamp>_add-wearable-data-record-type.js`: seed record_type 'Wearable
+   Data' using the idempotent pattern from the notes-record-type migration.
+2. Upload: reuse POST /upload/document. Wearable uploads are just documents with the
+   'Wearable Data' record type — no new upload endpoint needed for v1. Optionally accept a
+   `source`/`provider` string on the upload body (add to typebox schema + store on the row;
+   see the provider-lab-ingestion ticket which adds source metadata to medical_records —
+   coordinate so the column is added once).
+3. Set has_connected_wearables: after a successful 'Wearable Data' upload for a user, set
+   users.has_connected_wearables = true (single UPDATE in the upload handler when
+   record_type is Wearable Data).
+4. Frontend: add a "Wearables" section under the data-trends/biomarkers area that (a) offers
+   "Upload wearable data" using the existing upload component pre-set to the Wearable Data
+   record type, and (b) lists the patient's wearable-tagged documents. No charting in v1.
+
+--------------------------------------------------------------------------------
+FUTURE (separate ticket, do NOT build here) — structured observations & providers
+--------------------------------------------------------------------------------
+When a named provider/commercial requirement exists, add:
+  wearable_sources(user_uuid, provider, status, connected_at, revoked_at, external_account_id)
+  wearable_observations(source_id, metric_type, value, unit, recorded_at)  [or reuse data_points]
+  POST /wearables/manual-entry, GET /wearables/observations, POST /wearables/import,
+  provider OAuth connect/callback/disconnect, and trend charts alongside biomarkers.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- 'Wearable Data' record type exists (idempotent seed).
+- A patient can upload a wearable export file that is stored as a medical_records row tagged
+  Wearable Data (with source/provider metadata if the shared column exists).
+- users.has_connected_wearables becomes true after the first wearable upload.
+- The patient can find wearable uploads (in documents filtered by type and/or the Wearables
+  section).
+- Existing upload behaviour for non-wearable documents is unchanged.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean; re-running up does not duplicate the record type.
+- Upload a file as Wearable Data -> medical_records row has the right record_type_id and
+  has_connected_wearables flips true; a normal document upload does not flip it.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Confirm target providers before building any OAuth. Default: none for v1, file upload only.
+- Where the Wearables UI lives (data-trends vs biomarkers vs documents filter). Default:
+  a Wearables section under data-trends plus a documents type filter.

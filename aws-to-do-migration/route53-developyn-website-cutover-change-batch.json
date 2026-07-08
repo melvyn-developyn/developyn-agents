@@ -1,0 +1,31 @@
+{
+  "Comment": "Cut over developyn.com and www.developyn.com website to DigitalOcean WordPress host",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "developyn.com.",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "142.93.41.146"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "www.developyn.com.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "developyn.com."
+          }
+        ]
+      }
+    }
+  ]
+}

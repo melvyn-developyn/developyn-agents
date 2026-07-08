@@ -1,0 +1,18 @@
+{
+  "Comment": "Cut over timesheet.developyn.com from CloudFront to DigitalOcean host",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "timesheet.developyn.com",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "142.93.41.146"
+          }
+        ]
+      }
+    }
+  ]
+}

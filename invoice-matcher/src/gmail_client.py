@@ -9,7 +9,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly',
+          'https://www.googleapis.com/auth/gmail.compose',
+          'https://www.googleapis.com/auth/gmail.send']
 
 
 class GmailClient:
@@ -166,3 +168,52 @@ class GmailClient:
                 path = self.download_attachment(message_id, att['attachment_id'], fn)
                 paths.append(path)
         return paths
+
+    DRAFT_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly',
+                    'https://www.googleapis.com/auth/gmail.compose',
+                    'https://www.googleapis.com/auth/gmail.send']
+
+    def create_draft(self, from_addr: str, to_addr: str, subject: str, body: str,
+                      thread_id: str = None, in_reply_to: str = None) -> str:
+        """Create a Gmail draft (saved in the Drafts folder, NOT sent).
+
+        Returns the draft ID on success.
+        Requires the token to have gmail.compose + gmail.send scopes
+        (re-run oauth2_flow.py / re-auth if not).
+
+        If thread_id and in_reply_to (the original message's Message-ID header)
+        are provided, the draft is created as a reply in the same thread so it
+        stays grouped with the original conversation in Gmail.
+        """
+        if not self.service:
+            self.authenticate()
+
+        creds = Credentials.from_authorized_user_file(self.token_file, self.DRAFT_SCOPES)
+        if not creds.valid:
+            creds.refresh(Request())
+        draft_service = build('gmail', 'v1', credentials=creds)
+
+        headers = (
+            f"From: {from_addr}\r\n"
+            f"To: {to_addr}\r\n"
+            f"Subject: {subject}\r\n"
+            f"MIME-Version: 1.0\r\n"
+            f"Content-Type: text/plain; charset=utf-8\r\n"
+        )
+        if in_reply_to:
+            headers += (
+                f"In-Reply-To: {in_reply_to}\r\n"
+                f"References: {in_reply_to}\r\n"
+            )
+        message = headers + f"\r\n{body}"
+        raw = base64.urlsafe_b64encode(message.encode('utf-8')).decode('utf-8')
+
+        message_body = {'raw': raw}
+        if thread_id:
+            message_body['threadId'] = thread_id
+
+        result = draft_service.users().drafts().create(
+            userId='me', body={'message': message_body}
+        ).execute()
+
+        return result['id']

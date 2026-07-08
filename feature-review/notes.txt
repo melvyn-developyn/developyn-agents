@@ -1,0 +1,169 @@
+Vitaspan / Medivault feature review notes
+Source repos inspected:
+- /Users/melvynmathews/github/medivault/medivault-cloud
+- /Users/melvynmathews/github/medivault/vitaspan-admin-dashboard
+- /Users/melvynmathews/github/medivault/admin-backend
+
+Repository documentation checked:
+- medivault-cloud has AGENTS.md and sparse README.md. AGENTS describes a SvelteKit 2/Svelte 5 frontend, Fastify backend, PostgreSQL/Knex, DICOM viewing, AI summaries, risk assessment, identity verification, and anatomy-based Digital Twin. It also has an OKF bundle under okf/ with API, DB, frontend, and integration notes.
+- vitaspan-admin-dashboard has AGENTS.md and sparse README.md. AGENTS describes a SvelteKit admin frontend, adapter-node, Svelte 5, Tailwind v4, auth via localStorage JWT, PUBLIC_API_URL, and dashboard routes under src/routes/dashboard.
+- admin-backend has no AGENTS.md or README. Feature notes below are inferred from package.json, index.js, route/module directories, and route pages that call it.
+
+medivault-cloud feature inventory
+- Patient accounts and authentication: patient/clinician signup, email verification, login, email 2FA, TOTP setup, backup-code redemption, JWT refresh, password reset, progressive lockout. References: AGENTS.md, okf/api/authentication.md, backend/authentication/index.js.
+- Profile management: update personal fields such as name, DOB, sex, height, weight, NHS number, phone, ethnicity; upload profile images with virus scanning and GCS storage; signed profile image URLs. References: okf/api/profile.md, backend/profile/index.js.
+- Medical record upload and storage: upload documents with metadata, ClamAV scanning, SHA-256 deduplication, encrypted/protected PDF handling, Google Cloud Storage, AI categorisation, AI summary creation, record insertion. Supports document type and field-of-medicine lookups. References: okf/api/upload.md, backend/upload/index.js.
+- Medical record browsing and management: list/filter/search documents by date, keywords, body parts, record types, file types, sort order, and patient context; update metadata; soft delete; signed URLs; upload history; recent activity; FHIR Observation generation from PDFs. References: okf/api/documents.md, backend/documents/index.js, frontend routes under (dashboard)/[[patient_uuid]]/documents.
+- Document sharing and access control: patients can share documents externally by email or generated link; clinicians can share patient docs externally; record-type access can be requested, approved, revoked, granted in full, or revoked in full; clinician document access is logged. References: okf/api/documents.md, okf/api/clinicians.md, backend/documents/index.js, backend/clinicians/share/index.js.
+- Patient-clinician relationships: search clinicians, request/add/remove clinician connections, bulk clinician requests, clinician accept/reject patient connections, clinician-created patient accounts, clinician add existing patient by email. References: okf/api/patients.md, okf/api/clinicians.md, frontend routes under team/.
+- Trusted individuals: patient can invite trusted individuals by email, revoke relationship, label relationship, update record-type permissions, share selected clinicians, public accept/reject invite flow, trusted individual can see shared patients/clinicians and request clinician connection. References: okf/api/trusted-individuals.md, backend/trusted-individuals/index.js.
+- Notes: threaded patient/clinician notes with author tracking; patients can create head notes, clinicians reply; authors can update own notes; deletion constrained by role/author. References: okf/api/patients.md, backend/patients/[patient_uuid]/notes/index.js, frontend routes under notes/.
+- AI summaries: Gemini/Anthropic summaries for general medical records, risk models, document types, body parts, face-scan results, and streaming single-document summaries. References: okf/api/summaries.md, backend/summaries/index.js, backend/utils/gemini, backend/utils/anthropic.
+- Risk assessment: Apollo AI integrations for cardiovascular disease/AICVD, liver fibrosis, and prediabetes; stores results, risk contributors, treatment goals/plans, algorithm/general summaries; patients and clinicians can view risk history. References: okf/api/risk-assessment.md, backend/apollo/*, frontend risk-assessment routes.
+- Digital Twin: interactive anatomy viewer with organs, skeleton, and muscles; body-part mapping and documented-body-part filtering; load related documents from anatomy selection; summary expansion in document cards. References: AGENTS.md, okf/api/digital-twin.md, frontend/src/components/DigitalTwin.svelte, frontend/src/components/digital-twin/*.
+- DICOM viewing: authenticated DICOM viewer route/component exists for imaging review. References: AGENTS.md, okf/frontend/dicom-viewer.md, frontend routes under dicom-viewer/.
+- Biomarkers / data trends: dashboard routes for biomarkers and data trends; risk histories and face-scan summaries contribute to trend/chart views. References: frontend routes under biomarkers and profile/data-trends; okf/api/patients.md.
+- Identity verification: Veriff identity flow/webhooks, submitted/decision handling, DOB update, practitioner-check trigger for clinicians, success email; Intelliprove face-scan URL/token/results endpoints. References: okf/api/identity-verification.md, backend/veriff/index.js, backend/intelliprove/index.js.
+- Practitioner verification: GMC/practitioner credential verification subsystem. References: okf/api/practitioner-check.md, backend/practitioner-check/.
+- Notifications: aggregated pending clinician/patient/trusted-individual requests and acceptances, plus clinician-scoped patient notification lookup. References: okf/api/notifications.md, backend/notifications/index.js.
+- Public policies: privacy policy and cookie policy redirect endpoints; frontend cookie banner and share consent modal exist. References: okf/api/public.md, frontend/src/components/consent/CookieBanner.svelte, frontend/src/components/Modals/ShareConsentModal.svelte.
+- Policy auditor: upload notes and run streamed AI audit against policy criteria; test examples exist. References: frontend route policy-auditor, backend/policy-auditor/index.js, policy examples/test-notes.
+- Security controls visible in code/docs: JWT auth, 2FA/TOTP, CORS configuration, Helmet headers, schema strictness, feature flags/gates, role gates for clinician endpoints, GCS signed URLs, virus scanning, document access history. References: AGENTS.md, backend/index.js, okf/database/public-schema.md.
+
+vitaspan-admin-dashboard feature inventory
+- Admin auth: login, 2FA verification flow, password reset route, token stored in localStorage, dashboard auth redirects. References: AGENTS.md, src/routes/login, src/routes/reset-password/[reset_password_code].
+- Dashboard shell: sidebar, breadcrumbs, dark mode, logout, role-aware navigation for super users, clinic admins, and clinic staff. References: src/routes/dashboard/+layout.svelte, src/components/dashboard/UISidebar.svelte.
+- Super-user admin user management: admin users area calls /admin-users, supports clinic assignment routes in backend. References: src/routes/dashboard/admin-users/+page.svelte, admin-backend/admin-users/*.
+- Clinic management: list clinics, view a clinic, counts for admins/staff/clinicians/patients, enable/disable Medical Data Access, Algorithm Access, and Facescan Access. References: src/routes/dashboard/clinics, src/routes/dashboard/clinics/[clinic_id]/+page.svelte.
+- Clinic people management: pages for clinic admins, staff, clinicians, and patients; create/delete users; link/unlink patients and clinicians; clinic employee types. References: src/routes/dashboard/clinics/[clinic_id]/*, admin-backend/clinics/[clinic_uuid]/*.
+- Patient administration: add/delete patients, view patient clinicians, search/link clinicians, filter patients by risk model and risk level, show latest patient risk stratification and patient/clinic risk trend charts. CSV upload button exists but is disabled. References: src/routes/dashboard/clinics/[clinic_id]/patients/+page.svelte.
+- Facescan administration: create/edit/delete facescan configurations/projects, copy public scan URLs, configure monthly limit, daily user limit, contact email, and draggable scan-page fields of type text/image/video/input. References: src/routes/dashboard/clinics/[clinic_id]/facescan-configurations/+page.svelte.
+- Facescan usage: clinic overview displays remaining/used scan allowance; backend tracks usage/results. References: src/routes/dashboard/clinics/[clinic_id]/+page.svelte, admin-backend/clinics/[clinic_uuid]/facescan-configurations/*.
+- OMOP mapping: view unmatched IM1 terms, fetch similar OMOP concepts, match an IM1 code to an OMOP concept. References: src/routes/dashboard/omop-mapping/+page.svelte, admin-backend/omop-mapping/index.js.
+
+admin-backend feature inventory
+- Admin API stack: Fastify 5, JWT, WebSocket plugin, PostgreSQL/Knex, CORS, role decorator with clinic_staff, clinic_admin, super_user hierarchy. References: package.json, index.js.
+- Admin authentication: email/password login with argon2, emailed 2FA codes, JWT issuance, forgot/reset password emails. References: auth/index.js.
+- Admin user management: routes for admin users, individual admin users, and assigning clinics to admin users. References: admin-users/*.
+- Clinic management: clinic CRUD/detail, current user's clinic, clinic features, scans, staff, admins, clinicians, patients, clinic employee types. References: clinics/*, clinic/*, clinic-employee-type/*.
+- Feature flags: per-clinic toggles for feature_medical_data, feature_predictive_algorithms, and feature_facescan surfaced in the frontend. References: clinics/[clinic_uuid]/features/*.
+- Facescan project management: project CRUD, project fields CRUD/order, usage and results endpoints. References: clinics/[clinic_uuid]/facescan-configurations/*.
+- Patient risk admin endpoints: clinic-level risk summaries/trends, patient-level latest risk and risk history, filtering by risk model/risk level. References: clinics/[clinic_uuid]/patients/risk/* and patients/[patient_uuid]/risk/*.
+- OMOP mapping backend: unmatched records, similar concept lookup, match endpoint. References: omop-mapping/index.js.
+
+Terms of Use feature comparison notes
+- Covered: secure patient health information storage and organisation is broadly covered by upload/document/profile features.
+- Covered: patient-controlled sharing with healthcare professionals is substantially covered by clinician connections, record-type access approvals/revocations, external share links/emails, and trusted individuals.
+- Covered: AI organising/summarising/highlighting support is covered by document summaries, risk summaries, AI categorisation, Digital Twin summaries, policy auditor, and risk models.
+- Covered: secure authentication/access controls/audit logging are partly covered by auth, 2FA/TOTP, role gates, feature gates, signed URLs, virus scanning, and document access/share-history tables.
+- Covered or partially covered: privacy/cookie policy surfaces exist, signup medical consent exists, and share-recipient privacy/marketing consent exists.
+- Potentially missing: explicit patient Terms of Use acceptance/versioning gate. The Terms say users agree by creating an account or using the platform, and changes may require accepting updated terms before continuing. I found signup medical consent and privacy/cookie/share-consent components, but no obvious patient Terms acceptance record/version gate.
+- Potentially missing: parent/guardian/legal representative flow. Terms allow use if under 18 with parent/guardian/legal representative authorisation, but I did not see an explicit guardian/representative account or authorisation workflow beyond trusted individuals.
+- Potentially missing: consent withdrawal workflow. Terms say consent may be withdrawn where permitted. I found consent capture and access revocation, but no clear global consent withdrawal workflow or consequences handling.
+- Potentially missing: emergency / break-glass access. Terms describe authorised emergency access without prior consent, fully logged and audited. Searches did not reveal a break-glass/emergency access feature; normal clinician access logging exists.
+- Potentially missing: patient account closure / deletion request workflow. Terms say patients may close accounts and request deletion subject to retention obligations. I did not find a clear patient-facing close-account/delete-request flow.
+- Potentially missing: wearable device integration. Terms list wearable device information as uploadable. Code has has_connected_wearables fields, but I did not see an implemented wearable provider integration or import flow.
+- Potentially missing or unclear: third-party healthcare/lab integration ingestion. Terms mention healthcare systems, laboratories, wearable providers, and authorised technology providers. Existing third-party integrations are Veriff, Intelliprove, Apollo AI, Gemini/Anthropic, GCS, ClamAV, and OMOP; I did not see lab/provider EHR import integrations.
+- Potentially missing: explicit AI clinical-review acknowledgement in UI. Terms warn AI may be incomplete/inaccurate and should be reviewed by qualified professionals. AI features exist, but I did not confirm UI-level disclaimers beside those outputs.
+- Potentially missing: continuous security monitoring feature evidence. Terms list continuous security monitoring; source shows security controls, audit tables, and logging, but not a clear monitoring/alerting product feature.
+- Potentially missing: suspension/termination administration workflow. Terms allow suspension/termination for breach/fraud/security/legal reasons. I did not identify a dedicated admin suspend/terminate patient account feature, although admin delete/remove operations exist in places.
+
+Implementation proposals for missing or unclear Terms features
+
+Overall approach
+- Treat most Terms gaps as small compliance/product workflows layered onto existing auth, profile, document-access, notifications, and admin systems, rather than as separate products.
+- Put patient-facing features in medivault-cloud first. Put operational controls that require staff/admin action in admin-backend and vitaspan-admin-dashboard.
+- Add database migrations in medivault-cloud/backend/database-utils/migrations for patient-facing tables. Add admin-backend migrations only if the admin backend owns the relevant table; otherwise call or share the main database tables if both services already use the same DB.
+- Add OKF notes for any new API domains/endpoints after implementation so future agents can find them quickly.
+
+1. Explicit patient Terms acceptance and versioning
+- Product behaviour: require the patient to accept the current Patient Terms of Use and Privacy Notice during signup. If terms are materially updated, block authenticated app use with a lightweight acceptance screen until the latest required version is accepted.
+- Backend data model: add a terms_documents table with document_type, version, effective_date, required_from, url/storage_key, checksum, active flag. Add user_terms_acceptance with user_uuid, document_type, version, accepted_at, ip_address, user_agent.
+- Backend API in medivault-cloud: add GET /auth/terms/status or /profile/terms/status returning latest required terms and whether the current user has accepted them. Add POST /auth/terms/accept accepting document_type/version and recording the audit fields. During sign-up, record the accepted version alongside medical_consent.
+- Frontend in medivault-cloud: add terms checkbox/link on sign-up using the current client branding. Add an authenticated route or modal such as /terms/accept that the root/dashboard layout redirects to when /terms/status says acceptance is required.
+- Admin operations: initially seed terms versions through a migration/config file. Later add admin-dashboard CRUD only if non-developers need to publish new Terms versions.
+- Minimal first cut: hardcode current Patient Terms v1.0 in config/env and record acceptance in a single user_terms_acceptance table. Avoid a full document-management UI until version churn justifies it.
+
+2. Parent, guardian, or legal representative authorisation
+- Product behaviour: allow a patient account to be marked as self-managed adult, minor with guardian authorisation, or represented adult. For under-18 DOBs, require representative details and authority confirmation before account completion.
+- Backend data model: add patient_representatives with patient_user_uuid, representative_user_uuid nullable, representative_name, representative_email, relationship, authority_basis, status, invited_at, accepted_at, revoked_at. Keep this separate from trusted individuals because it is legal authority, not just shared access.
+- Backend API in medivault-cloud: extend sign-up validation so patients under 18 cannot complete without representative details. Add /representatives endpoints for invite, accept, revoke, and list. Reuse email templates and token-based invite patterns from trusted-individuals.
+- Frontend in medivault-cloud: add an under-18/representative step to sign-up. Add profile/team UI showing legal representatives separately from trusted individuals. Keep the language explicit: representative authority, not normal sharing.
+- Admin dashboard: add read-only representative status on patient detail, with revoke/mark-verified only if operations need it.
+- Minimal first cut: capture representative_name, representative_email, relationship, and authority checkbox at sign-up and store an audit record. Defer representative account creation if not needed at launch.
+
+3. Consent withdrawal workflow
+- Product behaviour: patient can withdraw platform medical-data processing consent or specific optional consents. The UI should explain that withdrawal may disable features and may not delete retained medical records.
+- Backend data model: add consent_preferences or user_consents with user_uuid, consent_type, status, version, granted_at, withdrawn_at, source. Consent types should include medical_processing, marketing, ai_assistance if needed, privacy_notice_acknowledgement, terms_acceptance if not stored separately.
+- Backend API in medivault-cloud: add GET /profile/consents and PATCH /profile/consents/:type. If medical_processing is withdrawn, set account status to restricted or disable feature_medical_data access for that patient while preserving retention obligations.
+- Frontend in medivault-cloud: add a Privacy & Consent section under my-profile. Use confirm dialogs with plain consequences. Show current consent state and audit timestamps.
+- Admin dashboard: expose consent status on patient detail so support can explain why access is restricted.
+- Minimal first cut: support withdrawal request creation rather than immediate automated restriction. Add consent_withdrawal_requests with status pending/completed/rejected and notify support/admins.
+
+4. Emergency / break-glass access
+- Product behaviour: authorised clinicians can request emergency access to a patient record without prior consent only in exceptional circumstances. They must select a reason, enter justification, confirm legal/emergency basis, and all access is logged and visible for audit.
+- Backend data model: add break_glass_access with patient_uuid, clinician_uuid, clinic_uuid, reason_code, justification, starts_at, expires_at, created_at, revoked_at. Add break_glass_access_events with event_type, document_uuid nullable, ip_address, user_agent, created_at.
+- Backend API in medivault-cloud: add POST /patients/:patient_uuid/break-glass/start, POST /patients/:patient_uuid/break-glass/end, GET /patients/:patient_uuid/break-glass/status, and admin/audit list endpoints. Update document-access checks so an active break-glass record temporarily satisfies access checks for allowed clinicians. Ensure /documents/log-access records normal and break-glass context.
+- Frontend in medivault-cloud: when a clinician is denied access, show “Request emergency access” with a high-friction confirmation flow. Add a visible banner while emergency access is active. Show patient-visible access history after the event if policy allows.
+- Admin dashboard: add a Break Glass Audit page filtered by clinic, clinician, patient, date, and reason. Allow revocation by clinic admin/super user.
+- Controls: require clinician account type, active clinic relationship where possible, short expiry such as 2 or 4 hours, rate limits, email notification to patient/support, and immutable event logs.
+- Minimal first cut: implement read-only emergency access for clinician document listing/signed URLs with strict expiry and audit, before extending to all patient features.
+
+5. Patient account closure and deletion requests
+- Product behaviour: patient can request account closure and/or data deletion from profile settings. The flow explains retention constraints and creates a support/admin task rather than deleting clinical records immediately.
+- Backend data model: add account_closure_requests with user_uuid, request_type closure/deletion/export, reason, status, requested_at, reviewed_by, reviewed_at, outcome_note. Add account_status fields to users if not already present: active, closure_requested, suspended, closed.
+- Backend API in medivault-cloud: POST /profile/account-closure-request, GET /profile/account-closure-request. Optional POST /profile/account-close-confirm for self-service closure if legally safe.
+- Frontend in medivault-cloud: add Account Settings section with “Request account closure” and “Request deletion of my information”. Require confirmation and optionally password/2FA re-auth.
+- Admin dashboard/admin-backend: add queue of closure/deletion requests, patient detail status, review actions, and audit log. Closing should disable login/token refresh while retaining records required by healthcare provider obligations.
+- Minimal first cut: request workflow only, no hard deletion. Status changes and manual handling by support/admins are safer.
+
+6. Wearable device information
+- Product behaviour: allow patients to add wearable information either manually or through provider integrations. Terms only require that wearable information may be uploaded, not necessarily live integrations on day one.
+- Backend data model: add wearable_sources with user_uuid, provider, status, connected_at, revoked_at, external_account_id encrypted if needed. Add wearable_observations or reuse data_points for metrics such as heart_rate, steps, sleep, HRV, SpO2, recorded_at, source_id.
+- Backend API in medivault-cloud: start with POST /wearables/manual-entry and GET /wearables/observations. Later add OAuth connect/callback/disconnect endpoints for Apple Health export files, Fitbit, Garmin, Oura, or Health Connect depending on target users.
+- Frontend in medivault-cloud: add “Wearables” under profile/data-trends. First cut: upload CSV/JSON export or manually enter observations. Surface data trends alongside existing biomarker/risk charts.
+- Admin dashboard: optional read-only flag showing whether a patient has connected wearables; existing has_connected_wearables can be driven from source records.
+- Minimal first cut: support upload of wearable export files through the existing document upload pipeline with record_type “Wearable Data”, then parse later. This satisfies the Terms language faster than full OAuth integrations.
+
+7. Healthcare system / lab / provider ingestion
+- Product behaviour: support importing records from authorised labs/providers/EHR systems where integrations exist. Manual upload remains the fallback.
+- Backend data model: add external_integrations with provider, integration_type, auth_type, status. Add patient_external_connections with user_uuid, provider, external_patient_id, status, consent_at, revoked_at. Add imported_records table linking external source payloads to medical_records.
+- Backend API in medivault-cloud: add /integrations endpoints for list/connect/disconnect/status and provider-specific webhook/import endpoints. Reuse upload/document creation utilities so imported PDFs/results land in medical_records with source metadata.
+- Implementation sequence: start with lab CSV/PDF import and email/inbox ingestion if available; then add FHIR API integration for providers supporting SMART on FHIR; then direct lab integrations as commercial requirements emerge.
+- Frontend in medivault-cloud: add “Connected services” page listing available integrations, status, and disconnect/revoke controls. For manual imports, add source/provider metadata fields to upload UI.
+- Admin dashboard: add integration configuration per clinic and status/failed-import logs.
+- Minimal first cut: add source/provider metadata to existing uploads and an admin/manual import path. Do not build provider-specific OAuth until a named provider is confirmed.
+
+8. AI clinical-review acknowledgement and output disclaimers
+- Product behaviour: all AI-generated summaries/reports/risk interpretations should carry a concise disclaimer: AI may be incomplete or inaccurate, does not replace medical advice, and should be reviewed by an appropriately qualified healthcare professional.
+- Frontend in medivault-cloud: create a reusable AIOutputDisclaimer.svelte component and place it near general summaries, single-document summaries, model summaries, Intelliprove summaries, risk pages, Digital Twin summary cards, and policy auditor output if patient/clinical-facing.
+- Backend API: include metadata on AI endpoints such as generated_by_ai: true, model/provider, generated_at, and maybe requires_clinical_review: true. This helps clients render disclaimers consistently.
+- Audit: optionally record when a clinician marks an AI output as reviewed. Add ai_review_events with user_uuid, patient_uuid, output_type, output_id, reviewed_at.
+- Minimal first cut: frontend-only reusable disclaimer in all known AI output components/routes. This is low-risk and fast.
+
+9. Continuous security monitoring evidence
+- Product behaviour: Terms mention continuous security monitoring. This does not need to be user-facing, but there should be operational evidence and internal/admin visibility.
+- Infrastructure/ops: ensure Cloud Run/GCP logs, error reporting, uptime checks, WAF/security alerts, dependency vulnerability scanning, and ClamAV service monitoring are configured. Document these in operational runbooks.
+- Backend: add structured security events for failed login bursts, 2FA failures, password reset requests, suspicious document access, break-glass use, admin feature toggles, and privilege changes. Store in security_events or emit to centralized logging.
+- Admin dashboard: optional Security Events page for super users, filtered by severity/type/date/user/clinic.
+- Notifications: alert support/admin email or Slack for high-severity events such as break-glass start, repeated login failures, malware upload, or admin privilege change.
+- Minimal first cut: add structured log lines and a runbook proving monitoring exists. Build dashboard UI only if operations need self-service review.
+
+10. Suspension and termination administration workflow
+- Product behaviour: support suspending/terminating access for breach, fraud, security risk, or legal requirement. Suspension should disable login/access while preserving data and audit trail.
+- Backend data model: add account_status to users and admin_user if not present, plus account_status_events with target_user_uuid, previous_status, new_status, reason_code, note, actor_user_uuid/admin_uuid, created_at.
+- Backend API in medivault-cloud/admin-backend: add admin-only endpoints to suspend, reinstate, and close patient/clinician accounts. Auth/login/token-refresh paths must reject suspended/closed accounts. Existing JWTs should be invalidated by checking account_status on critical requests or by token versioning.
+- Frontend in medivault-cloud: show a clear suspended/closed account page after login rejection. Avoid exposing internal reason details unless appropriate.
+- Admin dashboard: add status controls to patient/clinician/admin detail pages with reason, note, confirmation, and event history. Use role checks so only super users or authorised clinic admins can suspend.
+- Minimal first cut: status field plus login/token-refresh rejection and admin dashboard control. Do not delete user rows.
+
+Suggested delivery order
+- Phase 1, low-risk compliance: Terms acceptance/versioning, AI disclaimers, account closure request, consent withdrawal request, suspension status field, and monitoring runbook/logging.
+- Phase 2, access-control depth: break-glass access, representative/guardian workflow, admin audit screens, security events dashboard.
+- Phase 3, integrations: wearable data upload/manual entry, provider/lab source metadata, then named third-party integrations once commercial/provider requirements are fixed.
+
+Cross-cutting implementation notes
+- Every consent, access override, account status change, and Terms acceptance should record actor, timestamp, source IP, user agent where available, and version/reason.
+- Prefer request workflows over destructive self-service actions for deletion/closure/withdrawal until retention policy is final.
+- Reuse existing email templates, notification patterns, trusted-individual token invite flow, document access history, and admin role model rather than adding parallel systems.
+- Feature-gate new risky capabilities by clinic where useful, especially break-glass, integrations, wearables, and AI review tracking.

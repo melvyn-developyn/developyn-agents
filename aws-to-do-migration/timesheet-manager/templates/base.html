@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Developyn Timesheets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="{{ url_for('index') }}">Developyn Timesheets</a>
+      {% if current_user %}
+      <nav>
+        <a href="{{ url_for('index') }}">Timesheets</a>
+        <a href="{{ url_for('projects') }}">Projects</a>
+        {% if current_user.is_admin %}<a href="{{ url_for('users') }}">Users</a>{% endif %}
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </nav>
+      {% endif %}
+    </header>
+    <main>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}<div class="flash">{{ messages[0] }}</div>{% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

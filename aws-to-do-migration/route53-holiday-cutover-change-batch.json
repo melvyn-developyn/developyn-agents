@@ -1,0 +1,18 @@
+{
+  "Comment": "Cut over holiday.developyn.com from AWS EC2 to DigitalOcean host",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "holiday.developyn.com",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "142.93.41.146"
+          }
+        ]
+      }
+    }
+  ]
+}

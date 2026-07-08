@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Add Time</h1>
+<form class="card-form" method="post">
+  <label>Date <input type="date" name="entry_date" required value="{{ request.form.entry_date or '' }}"></label>
+  <label>Project
+    <select name="project_id" required>
+      {% for project in projects %}<option value="{{ project.id }}">{{ project.client }} - {{ project.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Hours <input type="number" name="hours" required step="0.25" min="0.25"></label>
+  <label>Description <textarea name="description" rows="4"></textarea></label>
+  <label class="checkbox"><input type="checkbox" name="paid_work" checked> Paid work</label>
+  <button>Save entry</button>
+</form>
+{% endblock %}

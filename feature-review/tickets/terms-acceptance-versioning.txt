@@ -1,0 +1,140 @@
+Title: Implement Patient Terms acceptance and versioning
+
+Phase: 1 - low-risk compliance
+Read first: _CONVENTIONS.md (migration, route, auth, typebox, frontend patterns).
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Patient signup is in medivault-cloud/backend/authentication/index.js (the POST
+  handler with the `medical_consent` typebox field, around line 1425). It already
+  rejects patient signup when `medical_consent` is false.
+- There is NO terms acceptance record and no versioned terms concept anywhere.
+- Frontend signup lives at medivault-cloud/frontend/src/routes/sign-up/.
+- The authed app is the medivault-cloud/frontend/src/routes/(dashboard)/ group;
+  its guard is (dashboard)/+layout.js / +layout.svelte.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+The Patient Terms state that users agree by creating an account or using the
+platform, and that material Terms changes may require re-acceptance before
+continued use. We capture medical/privacy/cookie consent but not an explicit,
+versioned Patient Terms acceptance record, and we cannot force re-acceptance.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope:
+- Record which Terms version a user has accepted, with audit fields.
+- Require acceptance at signup.
+- Block dashboard use until the current required version is accepted.
+Out of scope (do NOT build):
+- A Terms CMS / admin-managed document editor. Current version is a config constant.
+- Privacy Notice content management (leave a version column so it can be added later).
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+New file `<timestamp>_add-user-terms-acceptance.js`:
+
+  createTable('user_terms_acceptance'):
+    id            increments PK
+    user_uuid     uuid, FK users.uuid, onDelete CASCADE, notNullable
+    document_type string notNullable            // 'patient_terms' | 'privacy_notice'
+    version       string notNullable             // e.g. '1.0'
+    accepted_at   timestamp notNullable defaultTo now
+    ip_address    string nullable
+    user_agent    string nullable
+    timestamps(true, true)
+    index(['user_uuid', 'document_type'])
+
+Do NOT add a terms_documents table in this ticket. Current required versions come
+from config (below). Down migration drops the table.
+
+Config: add to medivault-cloud/backend the current required versions as env/config
+constants (match how other constants are read from process.env in this repo):
+    PATIENT_TERMS_VERSION (default '1.0')
+    PRIVACY_NOTICE_VERSION (default '1.0')
+    PATIENT_TERMS_URL, PRIVACY_NOTICE_URL (public URLs for the documents)
+"Required documents" for a patient = [patient_terms@PATIENT_TERMS_VERSION,
+privacy_notice@PRIVACY_NOTICE_VERSION].
+
+--------------------------------------------------------------------------------
+BACKEND API — new route folder medivault-cloud/backend/terms/index.js
+--------------------------------------------------------------------------------
+Register in backend/index.js: app.register(require('./terms'), { prefix: '/terms' });
+onRequest hook: req.jwtVerify() for all routes (no public routes here).
+
+GET /terms/status
+  Returns the required documents and whether req.user has accepted each current version:
+    { required: [ { document_type, version, url, accepted: bool } ], all_accepted: bool }
+  "accepted" = a row exists in user_terms_acceptance for (user_uuid, document_type, version).
+
+POST /terms/accept
+  body: typebox.Object({
+    acceptances: typebox.Array(typebox.Object({
+      document_type: typebox.Enum(['patient_terms','privacy_notice']),
+      version: typebox.String()
+    }))
+  })
+  - Reject (400) any version that is not the current required version for that document_type.
+  - Insert one user_terms_acceptance row per acceptance with ip_address = req.ip and
+    user_agent = req.headers['user-agent']. Ignore/upsert duplicates (unique on
+    user_uuid+document_type+version — add that unique constraint, or guard with a select).
+  - Return the refreshed /terms/status payload.
+
+Signup change (authentication/index.js patient signup handler):
+  - Add to the body schema: accepted_terms_version: typebox.String(),
+    accepted_privacy_notice_version: typebox.String().
+  - After the medical_consent check, reject (400) if either does not equal the current
+    required version.
+  - After the user row is created, insert the two user_terms_acceptance rows (same
+    transaction as user creation if practical) with ip/user-agent.
+
+--------------------------------------------------------------------------------
+FRONTEND — medivault-cloud/frontend
+--------------------------------------------------------------------------------
+Signup (src/routes/sign-up/):
+  - Add a required checkbox: "I have read and agree to the Patient Terms of Use and
+    Privacy Notice", linking to PATIENT_TERMS_URL and PRIVACY_NOTICE_URL.
+  - Submit accepted_terms_version and accepted_privacy_notice_version (the current
+    versions, injected from PUBLIC_ env or fetched) with the signup request.
+  - Block submit until checked.
+
+Re-acceptance gate:
+  - In the (dashboard) group guard (+layout.js load or +layout.svelte onMount), call
+    GET /terms/status. If all_accepted is false, redirect to /terms/accept.
+  - Add route src/routes/(dashboard)/terms/accept/+page.svelte: shows the outstanding
+    documents with links, one "I accept" action calling POST /terms/accept, then
+    redirects back. Keep copy short and direct.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- A new patient cannot complete signup without accepting the current Patient Terms
+  (checkbox required client-side AND version validated server-side).
+- Acceptance is stored with user_uuid, document_type, version, accepted_at, ip_address,
+  user_agent.
+- A logged-in patient whose accepted version is older than the current required version
+  is redirected to /terms/accept before any other dashboard route renders.
+- After accepting, GET /terms/status returns all_accepted=true and the user is not
+  prompted again (until the config version is bumped).
+- POST /terms/accept and the signup route reject a version that is not the current one.
+- All request fields are declared in typebox schemas.
+- OKF note added at okf/api/terms.md.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Run the new migration up/down cleanly.
+- Manual/integration: signup without checkbox blocked; signup with wrong version -> 400;
+  successful signup writes 2 acceptance rows; bump PATIENT_TERMS_VERSION and confirm an
+  existing user is redirected to /terms/accept; accept and confirm no re-prompt.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS (flag to product; pick the default if no answer)
+--------------------------------------------------------------------------------
+- Canonical URLs for Patient Terms v1.0 and Privacy Notice. Default: placeholder URLs
+  from config, wired so they are trivially swapped.
+- Does the gate apply to clinicians too, or patients only? Default: patients only.

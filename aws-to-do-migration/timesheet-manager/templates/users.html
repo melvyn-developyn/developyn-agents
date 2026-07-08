@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero"><h1>Users</h1></section>
+<section class="card">
+  <table>
+    <thead><tr><th>Email</th><th>Name</th><th>Admin</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+    {% for row in users %}
+      <tr>
+        <td>{{ row.email }}</td><td>{{ row.name or '' }}</td><td>{{ 'Yes' if row.is_admin else 'No' }}</td><td>{{ 'Yes' if row.active else 'No' }}</td>
+        <td class="actions">
+          {% if row.id != current_user.id %}
+          <form method="post" action="{{ url_for('toggle_admin', user_id=row.id) }}"><button>Toggle admin</button></form>
+          <form method="post" action="{{ url_for('toggle_user', user_id=row.id) }}"><button>Toggle active</button></form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -25,8 +25,9 @@ class PDFParser:
         r'Grand\s*Total[:\s]*£?([0-9,]+\.[0-9]{2})',
         r'Balance\s*Due[:\s]*£?([0-9,]+\.[0-9]{2})',
         r'Total\s*Due[:\s]*£?([0-9,]+\.[0-9]{2})',
-        r'Total[:\s]*£?([0-9,]+\.[0-9]{2})',
-        r'£([0-9,]+\.[0-9]{2})',
+        r'Total[:\s]*£?\s*([0-9,]+\.[0-9]{2})',
+        r'Invoice\s*Total[:\s]*£?\s*([0-9,]+\.[0-9]{2})',
+        r'£\s*([0-9,]+\.[0-9]{2})',
     ]
 
     DATE_PATTERNS = [
@@ -133,8 +134,8 @@ class PDFParser:
             vat_rate = 'Exempt'
         else:
             vat_amount_str = self._extract_field(text, [
-                r'Tax\s*(?:Amount|Due|Total)?[:\s]*£?([0-9,]+\.[0-9]{2})',
-                r'VAT\s*(?:Amount|Due|Total)?[:\s]*£?([0-9,]+\.[0-9]{2})',
+                r'Tax\s*(?:Amount|Due|Total)?[:\s]*£?\s*([0-9,]+\.[0-9]{2})',
+                r'VAT\s*(?:Amount|Due|Total)?[:\s]*£?\s*([0-9,]+\.[0-9]{2})',
             ])
             if vat_amount_str:
                 vat_amount = self._parse_amount(vat_amount_str)
@@ -155,6 +156,8 @@ class PDFParser:
                 vat_rate_str = self._extract_field(text, [
                     r'(\d+\.?\d*)%\s*(?:VAT|Tax)',
                     r'VAT\s*@\s*(\d+\.?\d*)%',
+                    r'VAT\s*%\s*(\d+\.?\d*)',
+                    r'VAT\s*Rate[:\s]*(\d+\.?\d*)%',
                     r'Tax\s*Rate[:\s]*(\d+\.?\d*)%',
                 ])
                 if vat_rate_str:

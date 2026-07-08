@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ace Sections LTD Modern Mockup</title>
+  <style>
+    :root {
+      --ink: #12161c;
+      --steel: #39424e;
+      --muted: #6d7784;
+      --line: #dfe4ea;
+      --panel: #f4f6f8;
+      --white: #ffffff;
+      --accent: #d18422;
+      --accent-dark: #9e5b11;
+      --blueprint: #1d3348;
+      --shadow: 0 24px 70px rgba(18, 22, 28, 0.16);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--white);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .container {
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 0 24px;
+    }
+
+    .topbar {
+      background: var(--ink);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 0.9rem;
+    }
+
+    .topbar .container {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 42px;
+    }
+
+    .topbar a {
+      color: var(--white);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .site-header {
+      background: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid rgba(57, 66, 78, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-wrap {
+      align-items: center;
+      display: flex;
+      gap: 32px;
+      justify-content: space-between;
+      min-height: 92px;
+    }
+
+    .brand {
+      align-items: center;
+      display: flex;
+      gap: 16px;
+      text-decoration: none;
+    }
+
+    .brand img {
+      height: 62px;
+      width: auto;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1.22rem;
+      letter-spacing: -0.04em;
+    }
+
+    .brand span {
+      color: var(--muted);
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    nav {
+      align-items: center;
+      display: flex;
+      gap: 6px;
+    }
+
+    nav a {
+      border-radius: 999px;
+      color: var(--steel);
+      font-size: 0.96rem;
+      font-weight: 800;
+      padding: 10px 14px;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      background: var(--panel);
+      color: var(--accent-dark);
+    }
+
+    .nav-cta,
+    .button {
+      align-items: center;
+      background: var(--accent);
+      border-radius: 999px;
+      box-shadow: 0 14px 34px rgba(209, 132, 34, 0.28);
+      color: var(--white);
+      display: inline-flex;
+      font-weight: 900;
+      justify-content: center;
+      padding: 13px 19px;
+      text-decoration: none;
+    }
+
+    .button.secondary {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      box-shadow: none;
+    }
+
+    .hero {
+      background:
+        linear-gradient(115deg, rgba(18, 22, 28, 0.92), rgba(18, 22, 28, 0.62) 48%, rgba(18, 22, 28, 0.22)),
+        url("https://acesectionsltd.co.uk/wp-content/uploads/2022/06/20220617_120229.jpg") center / cover;
+      color: var(--white);
+      min-height: 690px;
+      position: relative;
+    }
+
+    .hero::after {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 56px 56px;
+      content: "";
+      inset: 0;
+      opacity: 0.45;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .hero .container {
+      display: grid;
+      gap: 48px;
+      grid-template-columns: minmax(0, 1.06fr) 0.94fr;
+      min-height: 690px;
+      place-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      align-items: center;
+      color: #ffd194;
+      display: flex;
+      font-size: 0.86rem;
+      font-weight: 900;
+      gap: 10px;
+      letter-spacing: 0.12em;
+      margin: 0 0 18px;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      background: var(--accent);
+      content: "";
+      display: block;
+      height: 3px;
+      width: 42px;
+    }
+
+    h1 {
+      font-size: clamp(3.2rem, 7.2vw, 6.8rem);
+      letter-spacing: -0.075em;
+      line-height: 0.9;
+      margin: 0 0 24px;
+      max-width: 760px;
+    }
+
+    .hero-copy {
+      color: rgba(255,255,255,0.84);
+      font-size: clamp(1.08rem, 1.7vw, 1.35rem);
+      margin: 0 0 32px;
+      max-width: 660px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .hero-card {
+      align-self: end;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      color: var(--ink);
+      margin-bottom: 52px;
+      overflow: hidden;
+    }
+
+    .hero-card img {
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      width: 100%;
+    }
+
+    .hero-card-body {
+      padding: 24px;
+    }
+
+    .hero-card h2 {
+      font-size: 1.35rem;
+      letter-spacing: -0.04em;
+      margin: 0 0 8px;
+    }
+
+    .hero-card p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .quick-strip {
+      margin-top: -54px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .quick-strip-grid {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+    }
+
+    .quick-item {
+      padding: 28px;
+    }
+
+    .quick-item + .quick-item {
+      border-left: 1px solid var(--line);
+    }
+
+    .quick-item strong {
+      display: block;
+      font-size: 1.08rem;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .quick-item span {
+      color: var(--muted);
+    }
+
+    section {
+      padding: 90px 0;
+    }
+
+    .section-head {
+      align-items: end;
+      display: flex;
+      gap: 28px;
+      justify-content: space-between;
+      margin-bottom: 34px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(2.2rem, 5vw, 4.1rem);
+      letter-spacing: -0.065em;
+      line-height: 0.96;
+      margin: 0;
+      max-width: 690px;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      margin: 0;
+      max-width: 420px;
+    }
+
+    .services-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .service-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 16px 42px rgba(18, 22, 28, 0.08);
+      overflow: hidden;
+      text-decoration: none;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .service-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-4px);
+    }
+
+    .service-card img {
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      width: 100%;
+    }
+
+    .service-card div {
+      padding: 20px;
+    }
+
+    .service-card h3 {
+      font-size: 1.12rem;
+      letter-spacing: -0.04em;
+      margin: 0 0 8px;
+    }
+
+    .service-card p {
+      color: var(--muted);
+      font-size: 0.96rem;
+      margin: 0;
+    }
+
+    .split {
+      background: var(--panel);
+    }
+
+    .split-grid {
+      align-items: center;
+      display: grid;
+      gap: 56px;
+      grid-template-columns: 0.9fr 1.1fr;
+    }
+
+    .image-stack {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr 0.72fr;
+    }
+
+    .image-stack img {
+      border-radius: 22px;
+      box-shadow: 0 20px 48px rgba(18, 22, 28, 0.14);
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-stack img:first-child {
+      min-height: 460px;
+    }
+
+    .image-stack img:last-child {
+      margin-top: 70px;
+      min-height: 300px;
+    }
+
+    .content-panel h2 {
+      font-size: clamp(2.2rem, 4.5vw, 4.1rem);
+      letter-spacing: -0.065em;
+      line-height: 0.96;
+      margin: 0 0 22px;
+    }
+
+    .content-panel p {
+      color: var(--steel);
+      font-size: 1.08rem;
+      margin: 0 0 18px;
+    }
+
+    .stock-list {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      margin-top: 26px;
+      overflow: hidden;
+    }
+
+    .stock-list div {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+    }
+
+    .stock-list div + div {
+      border-top: 1px solid var(--line);
+    }
+
+    .stock-list strong {
+      color: var(--ink);
+    }
+
+    .stock-list span {
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .cta-band {
+      background:
+        linear-gradient(135deg, rgba(29, 51, 72, 0.94), rgba(18, 22, 28, 0.96)),
+        url("https://acesectionsltd.co.uk/wp-content/uploads/2022/06/dsc_0618.jpg") center / cover;
+      border-radius: 32px;
+      color: var(--white);
+      display: grid;
+      gap: 28px;
+      grid-template-columns: 1fr auto;
+      padding: clamp(32px, 5vw, 58px);
+    }
+
+    .cta-band h2 {
+      font-size: clamp(2rem, 4.5vw, 4rem);
+      letter-spacing: -0.065em;
+      line-height: 0.96;
+      margin: 0 0 12px;
+    }
+
+    .cta-band p {
+      color: rgba(255,255,255,0.78);
+      margin: 0;
+      max-width: 680px;
+    }
+
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,0.78);
+      padding: 54px 0;
+    }
+
+    .footer-grid {
+      display: grid;
+      gap: 34px;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr;
+    }
+
+    footer img {
+      background: var(--white);
+      border-radius: 14px;
+      max-width: 180px;
+      padding: 8px;
+    }
+
+    footer h3 {
+      color: var(--white);
+      margin: 0 0 12px;
+    }
+
+    footer p {
+      margin: 0;
+    }
+
+    .mobile-actions {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      nav {
+        display: none;
+      }
+
+      .hero .container,
+      .split-grid,
+      .cta-band,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+
+      .hero .container {
+        min-height: auto;
+        padding-bottom: 96px;
+        padding-top: 82px;
+      }
+
+      .hero-card {
+        margin-bottom: 0;
+      }
+
+      .quick-strip-grid,
+      .services-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .quick-item + .quick-item {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding-bottom: 74px;
+      }
+
+      .topbar {
+        display: none;
+      }
+
+      .container {
+        padding: 0 16px;
+      }
+
+      .nav-wrap {
+        min-height: 76px;
+      }
+
+      .brand img {
+        height: 48px;
+      }
+
+      .brand span {
+        display: none;
+      }
+
+      .brand strong {
+        font-size: 1.05rem;
+      }
+
+      .nav-cta {
+        display: none;
+      }
+
+      h1 {
+        font-size: clamp(3.1rem, 16vw, 4.8rem);
+      }
+
+      .hero .container {
+        padding-top: 54px;
+      }
+
+      .hero-actions .button {
+        width: 100%;
+      }
+
+      .quick-strip {
+        margin-top: -34px;
+      }
+
+      .quick-strip-grid,
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      section {
+        padding: 64px 0;
+      }
+
+      .image-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .image-stack img:first-child,
+      .image-stack img:last-child {
+        min-height: 260px;
+      }
+
+      .image-stack img:last-child {
+        margin-top: 0;
+      }
+
+      .stock-list div {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .stock-list span {
+        text-align: left;
+      }
+
+      .mobile-actions {
+        background: rgba(18, 22, 28, 0.96);
+        bottom: 0;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr 1fr;
+        left: 0;
+        padding: 10px;
+        position: fixed;
+        right: 0;
+        z-index: 20;
+      }
+
+      .mobile-actions a {
+        background: var(--accent);
+        border-radius: 999px;
+        color: var(--white);
+        font-size: 0.92rem;
+        font-weight: 900;
+        padding: 12px 10px;
+        text-align: center;
+        text-decoration: none;
+      }
+
+      .mobile-actions a:first-child {
+        background: var(--white);
+        color: var(--ink);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <span>Cold rolled sections, firewall components and fabricated steelwork</span>
+      <span><a href="tel:01384252272">01384 252272</a> &nbsp; · &nbsp; <a href="mailto:acesectionsltd@btconnect.com">acesectionsltd@btconnect.com</a></span>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#">
+        <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/cropped-ACE-SECTIONS-LTD-2-e1656968451718.png" alt="Ace Sections LTD logo">
+        <span><strong>Ace Sections LTD</strong><span>Steel sections and components</span></span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#delivery">Delivery</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <a class="nav-cta" href="#contact">Request a Quote</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div>
+          <p class="eyebrow">Dudley, West Midlands</p>
+          <h1>Stock lengths of channel tracks, cleats & noggins.</h1>
+          <p class="hero-copy">Ace Sections produces and holds stocks of firewall framing components for rapid delivery, alongside special lengths, press brake work, fabrication and finishing services.</p>
+          <div class="hero-actions">
+            <a class="button" href="#contact">Contact us for a quote</a>
+            <a class="button secondary" href="#services">View services</a>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="Featured capability">
+          <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/06/pipes.jpg" alt="Steel sections in stock">
+          <div class="hero-card-body">
+            <h2>Rapid stock supply and special lengths</h2>
+            <p>Standard components available from stock, with made-to-order lengths for projects where standard sizes waste time or material.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="quick-strip">
+      <div class="container">
+        <div class="quick-strip-grid">
+          <div class="quick-item"><strong>Stock components</strong><span>Channel tracks, cleats, noggins and firewall framing.</span></div>
+          <div class="quick-item"><strong>Finishing services</strong><span>Shot blasting, painting, galvanising and powder coating.</span></div>
+          <div class="quick-item"><strong>Delivery ready</strong><span>Site deliveries and long transportable sections supplied to order.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="services">
+      <div class="container">
+        <div class="section-head">
+          <h2>Practical steelwork services for site-ready components.</h2>
+          <p>Keep the current service content, but present it as clear, scannable cards that work well on desktop and mobile.</p>
+        </div>
+        <div class="services-grid">
+          <a class="service-card" href="#">
+            <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/2.png" alt="Channel tracks and noggins">
+            <div><h3>Channel tracks, cleats & noggins</h3><p>Stock lengths and special lengths produced to order.</p></div>
+          </a>
+          <a class="service-card" href="#">
+            <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/1.png" alt="Shot blasting">
+            <div><h3>Shot blasting & painting</h3><p>Prime or finish painting arranged for project requirements.</p></div>
+          </a>
+          <a class="service-card" href="#">
+            <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/3.png" alt="Galvanising and laser-cut profiles">
+            <div><h3>Galvanising & laser-cut profiles</h3><p>Finishing and profiling support for fabricated steelwork.</p></div>
+          </a>
+          <a class="service-card" href="#">
+            <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/Untitled-design-15.png" alt="Cold rolled sections">
+            <div><h3>Cold rolled sections</h3><p>Cold rolled sections in steel, stainless steel and brass.</p></div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="split">
+      <div class="container split-grid">
+        <div class="image-stack">
+          <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/06/dsc_0618.jpg" alt="Ace Sections production area">
+          <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/06/20220617_120303.jpg" alt="Steelwork production">
+        </div>
+        <div class="content-panel">
+          <p class="eyebrow">What Ace Sections can do</p>
+          <h2>Experienced production for stock items, specials and assembled components.</h2>
+          <p>Ace Sections has the capacity to produce cold rolled sections in many materials and has the added advantage of 3.0-metre press brake facilities for small quantities and specials.</p>
+          <p>We produce and hold stocks of firewall framing components for rapid delivery. Special lengths can often provide a big saving over standard stock lengths.</p>
+          <p>We have supplied and delivered stud sections over sixteen metres long, plain or with fixing holes at required centres.</p>
+          <div class="stock-list">
+            <div><strong>80 x 60 x 3.0mm channel</strong><span>3000mm stock, other lengths to order</span></div>
+            <div><strong>150 x 60 x 3.0mm channel</strong><span>3000mm stock, other lengths to order</span></div>
+            <div><strong>50 x 50 x 1.0, 2.0 & 3.0mm angle</strong><span>3000mm stock, other lengths to order</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="delivery">
+      <div class="container">
+        <div class="cta-band">
+          <div>
+            <h2>Need a price for stock sections or fabricated steelwork?</h2>
+            <p>Keep the conversion path simple: one clear quote CTA, visible phone/email details, and a mobile contact bar for quick enquiries.</p>
+          </div>
+          <a class="button" href="#contact">Contact Ace Sections</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact">
+    <div class="container footer-grid">
+      <div>
+        <img src="https://acesectionsltd.co.uk/wp-content/uploads/2022/07/cropped-ACE-SECTIONS-LTD.png" alt="Ace Sections LTD logo">
+      </div>
+      <div>
+        <h3>Company Address</h3>
+        <p>Unit 15 Sovereign Works<br>Deepdale Lane, Upper Gornal<br>Dudley, West Midlands<br>DY3 2AF</p>
+      </div>
+      <div>
+        <h3>Company Details</h3>
+        <p><a href="tel:01384252272">01384 252272</a><br><a href="mailto:acesectionsltd@btconnect.com">acesectionsltd@btconnect.com</a><br><br>Company Reg. No. 4567223<br>VAT No. 807 8343 18</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="mobile-actions" aria-label="Mobile contact actions">
+    <a href="tel:01384252272">Call</a>
+    <a href="mailto:acesectionsltd@btconnect.com">Email for Quote</a>
+  </div>
+</body>
+</html>

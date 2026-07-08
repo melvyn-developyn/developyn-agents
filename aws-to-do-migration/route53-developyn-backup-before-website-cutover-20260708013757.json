@@ -1,0 +1,1085 @@
+{
+    "ResourceRecordSets": [
+        {
+            "Name": "developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "18.201.140.243"
+                }
+            ]
+        },
+        {
+            "Name": "developyn.com.",
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "10 mx.zoho.eu."
+                },
+                {
+                    "Value": "20 mx2.zoho.eu."
+                },
+                {
+                    "Value": "50 mx3.zoho.eu."
+                },
+                {
+                    "Value": "10 alt4.aspmx.l.google.com."
+                },
+                {
+                    "Value": "5 alt2.aspmx.l.google.com."
+                },
+                {
+                    "Value": "10 alt3.aspmx.l.google.com."
+                },
+                {
+                    "Value": "5 alt1.aspmx.l.google.com."
+                },
+                {
+                    "Value": "1 aspmx.l.google.com."
+                }
+            ]
+        },
+        {
+            "Name": "developyn.com.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1547.awsdns-01.co.uk."
+                },
+                {
+                    "Value": "ns-367.awsdns-45.com."
+                },
+                {
+                    "Value": "ns-850.awsdns-42.net."
+                },
+                {
+                    "Value": "ns-1393.awsdns-46.org."
+                }
+            ]
+        },
+        {
+            "Name": "developyn.com.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1547.awsdns-01.co.uk. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        },
+        {
+            "Name": "developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"google-site-verification=8cymG6VZgE1G0Wfp9dEGb7vCbuLlttpRdomp0zkrmTw\""
+                },
+                {
+                    "Value": "\"v=spf1 include:zoho.eu ~all\""
+                },
+                {
+                    "Value": "\"zoho-verification=zb21161400.zmverify.zoho.eu\""
+                },
+                {
+                    "Value": "\"google-site-verification=3j9MzECBdMVCKK1W8vxXjrckh6xwmVOYRsGFBpe8ndw\""
+                },
+                {
+                    "Value": "\"MS=767B8706F38B2E9F5F3D5B7CECCD6F62E4721185\""
+                },
+                {
+                    "Value": "\"zoho-verification=UAOELVMWZD.zmverify.zoho.eu\""
+                }
+            ]
+        },
+        {
+            "Name": "_amazonses.developyn.com.",
+            "Type": "TXT",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "\"9UdiPZPfC2p9RN706xn2mkxyd2oiWA6NbnWBmEa+biw=\""
+                }
+            ]
+        },
+        {
+            "Name": "_dmarc.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DMARC1;p=quarantine;pct=25;\""
+                }
+            ]
+        },
+        {
+            "Name": "6whevsdboeljxylidstp4hnzcwlvdsd5._domainkey.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "6whevsdboeljxylidstp4hnzcwlvdsd5.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "google._domainkey.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsetdi0BOEtlGkn4Z9HZDCuOPmQmrpO1TiV3aX92feJNumJgsolg/5Z/vJwLO1tBEOQJwNpMRYAtacc4u20R9TLPWtEpZAjIHTW1tw2ClJMoEPAutos1jO2skaA0m+RKH/DFwdayFCEivAdHpQTKdBYHuj1n26nWIWbND+Gr+xq0/BxF0hFynSrqTGqM\"\"x5UA3e9qrLf64CcrUAik7el3t6i07h422sVVxd2qzxezluXDHFfVat8qdN5NB2gk0JnFI1ZIoSw9xgyyXRPRv8p6oTfE2byFJETCiF5TKMTcWoFG9coMXEwjuea06kNfFvoZuubYbXlA+5rggGnylBnMoLQIDAQAB\""
+                }
+            ]
+        },
+        {
+            "Name": "mms2crbkmtnxrduzmqblxm2nzuaod2qg._domainkey.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "mms2crbkmtnxrduzmqblxm2nzuaod2qg.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "uqogw2igmvasamfgtlq52uxdxycyuz5n._domainkey.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "uqogw2igmvasamfgtlq52uxdxycyuz5n.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "_f5d9753cc2ccb61d9fb774cd97b87f1c.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_6a46ff177986dd4e073641a595c9f5f9.hkvuiqjoua.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "admin.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "d9una5aavfqru.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "api.developyn.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d1bzlcef2p9pm7.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "_5e0e8b2210bf0d676e87fc20d2d43f30.api.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_df056768f1ab76b933beb335f8c9d569.tfmgdnztqk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "aps-ltd.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "3.250.158.116"
+                }
+            ]
+        },
+        {
+            "Name": "aps.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d2c9r45bedk39e.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_d49080f2f1a41fa9c49e6a8bd9bb6a74.aps.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_37d1afd66730ff264c90a6b8b8ef07a5.mhbtsbpdnt.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_8d594a948c34cfe5c8430433fbf7a24b.www.aps.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_f2c6257729a904be2d0b5ed6b3048b93.mhbtsbpdnt.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "castlemore.developyn.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "dycvaujpdwwkk.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "castlemore.developyn.com.",
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "10 mx.zoho.eu"
+                },
+                {
+                    "Value": "20 mx2.zoho.eu"
+                },
+                {
+                    "Value": "50 mx3.zoho.eu"
+                }
+            ]
+        },
+        {
+            "Name": "castlemore.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=spf1 include:zoho.eu ~all\""
+                }
+            ]
+        },
+        {
+            "Name": "_dd441918d6aeae5b7e24f635ead73c4d.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_4b38cecfc32beb3b7ad78db97d862394.wrpxpmnjfs.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "cwdsfcpv7zn2bixhaaw4g673uht3sjou._domainkey.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "cwdsfcpv7zn2bixhaaw4g673uht3sjou.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "fbtukbtns4jyeiyuzydqveo6h2b5m6pm._domainkey.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "fbtukbtns4jyeiyuzydqveo6h2b5m6pm.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "sidb4uo4nrzc26mr6kedziiq4fe3aq4d._domainkey.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "sidb4uo4nrzc26mr6kedziiq4fe3aq4d.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "zmail._domainkey.castlemore.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC9T0oqsRg/5ZT8oMZLnCNZN+2b/ETp24EvxJG/bs0nM/03ULD/lyuniUUC1sgTwb71GoHrjf2a8/cY/Y3XlRT+JC6Zi8Gh4DjE/JW351LelwZoW+TLTMQXsC1awHvSMdG8Y61RvXy+uczsTYXIA5AT6JZiv7EiSWoJK01VhGXaBwIDAQAB\""
+                }
+            ]
+        },
+        {
+            "Name": "db.castlemore.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "52.31.242.194"
+                }
+            ]
+        },
+        {
+            "Name": "_b18a1d6de74907fa908e31645eeda636.test.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_cec6c7923eb8eb4d77ee43ccaca711c4.qxcwttcyyb.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "www.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "dycvaujpdwwkk.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_c22e456de8270b8bdf2f20c276135528.www.castlemore.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_110ed1432f33bedb004fe76b11af3111.wrpxpmnjfs.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "dev.developyn.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d1mgkbi1ghj5xm.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "_a35d3872c4ba431ac8264f30ebbc0c13.dev.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_4cfe4c0ec34a06ac707f5af0979935b4.tfmgdnztqk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_8a083e2db60d5799e762cf33d704268e.example.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_9a4a243f630b1cac74076770a9c34131.tfmgdnztqk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "free-seo-report.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.171.82.59"
+                }
+            ]
+        },
+        {
+            "Name": "futuresystems.developyn.com.",
+            "Type": "A",
+            "TTL": 0,
+            "ResourceRecords": [
+                {
+                    "Value": "178.128.167.233"
+                }
+            ]
+        },
+        {
+            "Name": "_9ba31062da11d9a3bdab641fa145dd2c.gerardo.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_f258f35ef78b82af4f3de836ea99854c.mjclfywhbs.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "gk.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "3.64.38.158"
+                }
+            ]
+        },
+        {
+            "Name": "greenkayak-shop.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "63.35.222.62"
+                }
+            ]
+        },
+        {
+            "Name": "hello.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "aplolinks.com"
+                }
+            ]
+        },
+        {
+            "Name": "holiday.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "34.243.119.87"
+                }
+            ]
+        },
+        {
+            "Name": "humanaccelerators.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.194.30.91"
+                }
+            ]
+        },
+        {
+            "Name": "analytics.ikea.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "35.240.38.26"
+                }
+            ]
+        },
+        {
+            "Name": "test.insight-hub.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "c.storage.googleapis.com"
+                }
+            ]
+        },
+        {
+            "Name": "internal-wordpress.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d38k17aujo8tck.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_5f5edb179cb97bd189bb97ba7033eb77.dev.internal-wordpress.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_24a810eebd63bd2f0a78e5efae90458d.bvddzfjgyb.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "test.internal-wordpress.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d2gj901f8m1auh.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_bcd38e7af4f2807ec5ce257565b48739.test.internal-wordpress.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_fe64be044b5aa426eea115a0d86f0ee3.bvddzfjgyb.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "loglap.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d140hzs759uxca.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_31401b742aa14a1887f10d91cae4b2a4.loglap.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_3f3f7e88866ebf1943ac8a95e6bf187f.fpgkgnzppq.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "mail.developyn.com.",
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "10 mx.zoho.eu"
+                },
+                {
+                    "Value": "20 mx2.zoho.eu"
+                },
+                {
+                    "Value": "50 mx3.zoho.eu"
+                }
+            ]
+        },
+        {
+            "Name": "mail.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=spf1 include:zoho.eu ~all\""
+                }
+            ]
+        },
+        {
+            "Name": "zmail._domainkey.mail.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCM0tfhyQkK1TYtcqtaYr0CE4PcwdHNjqegqOxuGhqqiGF5o92Vg/glx6qL1IJukE6GCVHy09W0cQFcE5uSEhwv5v0FWtFbSeG/M/jL4MlH4Owkf6KTlgOtYqqnHsIAVdLkyJVgq47h4O7kkgiECUVMW3kEa8VK/4iRW6CvNeqRHwIDAQAB\""
+                }
+            ]
+        },
+        {
+            "Name": "meal-planner.developyn.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d3ffs1idf3vsa8.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "meal-planner.developyn.com.",
+            "Type": "AAAA",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d3ffs1idf3vsa8.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "_29fa0b3719c2abd903a827382aec3d30.meal-planner.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_d3b9bdf166df33f33e911a6c500409bf.gwpjclltnz.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "meirglobal.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "34.244.46.39"
+                }
+            ]
+        },
+        {
+            "Name": "metrics.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "dcnqpe1lciddb.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "dev.metrics.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d1ocx0fpfen8xb.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_422f7c4274a7ffdd418ab58abcacc35f.dev.metrics.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_9f15cd26a5a22ac33a8c208a00062cfe.ghcgkbmxjw.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "monitor.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "142.93.41.146"
+                }
+            ]
+        },
+        {
+            "Name": "_fff3efd0cd0d96e5014f7be69093e94b.mygevity.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_e9960aabdda98bba630f0c709e58409e.cvfdyspdbk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_ec042c2c97b71f9132493f2853159f62.www.mygevity.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_195f99e0d280cfaafc2ce95da1319e6b.cvfdyspdbk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_0c86f0cd24d9cdded75770d923d2c6fc.perminder.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_1cd9c216ab191823e208097651520332.btkxpdzscj.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "quote.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d3otci7cmwbhgg.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_67dc37259a55bcfd8d5b8202237b5165.quote.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_527ec108e91af6002d460f6147c9c564.wmqxbylrnj.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_4922c6bb0bfa68b8246708d047eb98a6.shop.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_37d7c1485581ec1f79b6780697a1e9c5.tfmgdnztqk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "strapi.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "157.245.76.191"
+                }
+            ]
+        },
+        {
+            "Name": "stylyn.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d1pp20od206054.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_ed5c6e3820130541d52cdf0d1f39fbd7.stylyn.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_e7712b8acb61a3b5a41f83c520f18d61.tgztlnjmjp.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "zmail._domainkey.successwith.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0NyB6zfXLKBIKO7VOU/+VFOhnPot3QKKkYubYyotuG2v+viUo+b+UOOYuKxDMHp4UoPH91+Gkokwe61Bx5fc6VbCiL4m6E2FRnfgYjkm7H12cmSvCWiHRgDFvLTGY5N35/ljs4AsHzlQb72cTyJJTBhcRAW5YVbet0AT81IE8xwIDAQAB\""
+                }
+            ]
+        },
+        {
+            "Name": "tenit.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "165.232.44.220"
+                }
+            ]
+        },
+        {
+            "Name": "test.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.78.3.39"
+                }
+            ]
+        },
+        {
+            "Name": "_b5cac99e246e492fd41c9584ce74f409.test.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_cda492a40bb46d33c67789d438890d87.tfmgdnztqk.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "timesheet.developyn.com.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d27wzkgpmfdppr.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "dev.timesheet.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "di5v9tvzltl1v.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_15f22d93f53e50ca8a5f4450e7cc7910.dev.timesheet.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_396df33443ee49c7a20adcf7c662b63c.tctzzymbbs.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "todo-ben.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d3ukuht0r8br1m.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_b427f40a94f6cb650ba9a8e1e49fadf0.todo-ben.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_05555c3d15888e05c3b29766c3169273.jpxlwdfnnn.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "trueformdigital.developyn.com.",
+            "Type": "A",
+            "TTL": 0,
+            "ResourceRecords": [
+                {
+                    "Value": "188.166.171.117"
+                }
+            ]
+        },
+        {
+            "Name": "tsl.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "34.255.137.118"
+                }
+            ]
+        },
+        {
+            "Name": "induction.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d1lwtp85dx3t5j.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_af0d3a7c332c2c5dfc540af640dde1bb.induction.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_e5d97a8842f8c3641b09b60f80302d79.dlgthlwgnp.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "inspection.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d3skv9jcgtqj58.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_12e49b519740e876aa8a20f75c52472e.inspection.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_a779a97cd4dddf2f9e9521ade09dddc3.btkxpdzscj.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "www.inspection.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "d3skv9jcgtqj58.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_0dcedec52a13657ec962fd17208e33a9.www.inspection.tsl.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_2b509bef70b7b4a929561d622926f58c.btkxpdzscj.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "test.tsl.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "3.252.231.246"
+                }
+            ]
+        },
+        {
+            "Name": "tslacademy.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "djn9kri5f2v2x.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "vg.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "63.33.184.118"
+                }
+            ]
+        },
+        {
+            "Name": "api.vg.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "52.48.237.208"
+                }
+            ]
+        },
+        {
+            "Name": "wesley.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "34.253.241.17"
+                }
+            ]
+        },
+        {
+            "Name": "wordpress.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "developyn.com"
+                }
+            ]
+        },
+        {
+            "Name": "_acme-challenge.wordpress.developyn.com.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"-o5p7ldq7FlQJu_0hp15Sdru4Lv40cofU7X42TNwnx0\""
+                }
+            ]
+        },
+        {
+            "Name": "igs.wordpress.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "54.246.37.144"
+                }
+            ]
+        },
+        {
+            "Name": "telehandlers.wordpress.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "52.211.87.147"
+                }
+            ]
+        },
+        {
+            "Name": "api.wordsmith.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "34.147.222.20"
+                }
+            ]
+        },
+        {
+            "Name": "www.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "dl3ocv5gl2u8h.cloudfront.net"
+                }
+            ]
+        },
+        {
+            "Name": "_amazonses.www.developyn.com.",
+            "Type": "TXT",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "\"NCxw3VYAoLS9XolBGj4ROvYbFdcHGRDysf+k3p5NUOA=\""
+                }
+            ]
+        },
+        {
+            "Name": "vtqaa7phm7gzie3stb6ylnl5puh653tm._domainkey.www.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "vtqaa7phm7gzie3stb6ylnl5puh653tm.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "wpnllti3mkqb7deatm7gtntl5zuwsewi._domainkey.www.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "wpnllti3mkqb7deatm7gtntl5zuwsewi.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "zrglllm6lzwwzifqvoaysz7ralooczzn._domainkey.www.developyn.com.",
+            "Type": "CNAME",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "zrglllm6lzwwzifqvoaysz7ralooczzn.dkim.amazonses.com"
+                }
+            ]
+        },
+        {
+            "Name": "xdm.developyn.com.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "52.18.21.80"
+                }
+            ]
+        }
+    ]
+}

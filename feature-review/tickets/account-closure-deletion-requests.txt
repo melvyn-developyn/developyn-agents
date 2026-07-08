@@ -1,0 +1,127 @@
+Title: Implement patient account closure and deletion request workflow
+
+Phase: 1 - low-risk compliance
+Read first: _CONVENTIONS.md.
+DEPENDS ON: account-suspension-termination.txt — it adds the users.account_status
+column and account_status_events table this ticket reuses. Do that ticket first.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Patient profile backend: medivault-cloud/backend/profile/index.js (POST /update,
+  /update/image, GET /signed-profile-image). No account-lifecycle endpoints.
+- Patient settings frontend: medivault-cloud/frontend/src/routes/(dashboard)/my-profile/.
+- Admin patient area: admin-backend/clinics/[clinic_uuid]/patients/ and the dashboard
+  page vitaspan-admin-dashboard/src/routes/dashboard/clinics/[clinic_id]/patients/.
+- After the suspension ticket, users.account_status exists with values
+  active | suspended | closed | closure_requested.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms say patients may close their account and request deletion, subject to retention
+obligations. There is no patient-facing closure/deletion request flow.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope: patient submits a closure/deletion/export REQUEST; admin reviews and resolves;
+closing sets account_status='closed' (reusing the suspension mechanics).
+Out of scope: automatic/hard deletion of any clinical records. This is a request queue
+only. Actual deletion is a manual, out-of-band admin process.
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-account-closure-requests.js`:
+  createTable('account_closure_requests'):
+    id           increments PK
+    uuid         uuid unique defaultTo gen_random_uuid()
+    user_uuid    uuid notNullable FK users.uuid onDelete CASCADE, index
+    request_type string notNullable          // 'closure' | 'deletion' | 'export'
+    reason       text nullable
+    status       string notNullable defaultTo 'pending'  // pending|in_review|completed|rejected
+    reviewed_by  uuid nullable               // admin_user.uuid, no FK (separate table)
+    reviewed_at  timestamp nullable
+    outcome_note text nullable
+    timestamps(true, true)
+  Partial-unique so a user has at most one OPEN request: enforce in code
+  (select existing pending/in_review before insert) — Knex partial indexes are awkward;
+  a code guard is acceptable and simpler here. // ponytail: code guard over partial index
+
+Do NOT add account_status here (comes from the suspension ticket).
+
+--------------------------------------------------------------------------------
+BACKEND — patient endpoints (medivault-cloud/backend/profile/index.js)
+--------------------------------------------------------------------------------
+Add to the existing profile route (already jwtVerify'd):
+
+POST /profile/account-closure-request
+  body: typebox.Object({
+    request_type: typebox.Enum(['closure','deletion','export']),
+    reason: typebox.Optional(typebox.String())
+  })
+  - Reject (409) if the user already has a pending/in_review request.
+  - Insert row for req.user.uuid; return it.
+  - Optional: set users.account_status = 'closure_requested' for request_type 'closure'
+    (still allows login — it is a request, not a suspension).
+
+GET /profile/account-closure-request
+  - Return the caller's most recent request (status + timestamps + outcome_note).
+
+Re-auth: gate POST behind a fresh password or 2FA check only if trivial with existing
+helpers; otherwise a confirmation checkbox client-side is acceptable for v1 (see decisions).
+
+--------------------------------------------------------------------------------
+BACKEND — admin queue (admin-backend)
+--------------------------------------------------------------------------------
+New folder admin-backend/account-requests/index.js, prefix '/account-requests',
+gated fastify.authenticate('clinic_admin') (super_user implicitly allowed by hierarchy).
+
+GET /account-requests            -> list, filter by ?status=, newest first, with patient
+                                    name/email joined from users.
+POST /account-requests/:uuid/review
+  body: { status: Enum(['in_review','completed','rejected']), outcome_note?: String }
+  - Update the request; set reviewed_by=req.user.uuid, reviewed_at=now.
+  - If status='completed' AND request_type='closure': set users.account_status='closed'
+    and write an account_status_events row (reuse the suspension ticket's table/mechanic).
+  - Never delete records here.
+
+--------------------------------------------------------------------------------
+FRONTEND
+--------------------------------------------------------------------------------
+medivault-cloud (my-profile):
+  - Add an "Account" / settings section under src/routes/(dashboard)/my-profile/ with
+    "Request account closure" and "Request deletion of my information" actions.
+  - Show a clear retention caveat (deletion is subject to legal retention; some records
+    may be kept) and a confirmation step. After submit, show current request status from
+    GET /profile/account-closure-request.
+vitaspan-admin-dashboard:
+  - Add a requests queue page (e.g. src/routes/dashboard/account-requests/) listing
+    pending requests with a review action (status + outcome note), using src/http.
+  - Surface the patient's current account_status + latest request on the patient detail page.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- A patient can create at most one open closure/deletion/export request.
+- The patient sees request status after submission.
+- Admin/support can list and resolve requests (in_review/completed/rejected) with a note.
+- Completing a closure sets account_status='closed', which (via the suspension ticket)
+  blocks login/refresh, and writes an account_status_events row.
+- No medical records are hard-deleted by any flow in this ticket.
+- OKF note updated for /profile/account-closure-request and /account-requests.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- Create a request; second create returns 409; admin completes a 'closure'; confirm the
+  user's account_status='closed' and login now 403s; confirm no rows deleted.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Require password/2FA re-auth to submit? Default: confirmation checkbox for v1.
+- Retention wording and review SLA — legal/product to supply final copy.
+- Who processes the queue: clinic_admin vs super_user only. Default: clinic_admin+.

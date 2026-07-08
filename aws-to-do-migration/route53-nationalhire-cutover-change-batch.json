@@ -1,0 +1,16 @@
+{
+  "Comment": "Cut over nationalhiresolutions.co.uk apex from AWS (34.241.136.6) to DigitalOcean (142.93.41.146); www is CNAME-to-apex and follows; all mail records untouched",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "nationalhiresolutions.co.uk.",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          { "Value": "142.93.41.146" }
+        ]
+      }
+    }
+  ]
+}

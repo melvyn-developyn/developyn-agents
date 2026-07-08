@@ -1,0 +1,132 @@
+Title: Implement guardian and legal representative authorisation
+
+Phase: 2 - access-control depth
+Read first: _CONVENTIONS.md.
+Reuses the trusted-individual invite flow (below) — do NOT invent a new invite system.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Trusted individuals already implement the exact invite/accept/revoke pattern to copy:
+  * migration: 20260626120000_add_trusted_individuals.js (tables patient_trusted_individuals
+    + share tables).
+  * route: medivault-cloud/backend/trusted-individuals/index.js — token helpers
+    (make_invite_token, hash_token = sha256, invite_expires_at = +14d), public_routes for
+    invite accept/reject, email templates in backend/email/templates/trusted_individual_*.
+  * frontend accept flow at /network/invite?token=...
+- Signup: medivault-cloud/backend/authentication/index.js patient handler collects
+  date_of_birth already. Signup frontend: medivault-cloud/frontend/src/routes/sign-up/.
+- Trusted individuals are SHARING permissions, not legal authority. This ticket adds a
+  distinct legal-representative concept and must NOT reuse the trusted-individual tables.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms allow platform use by a parent, guardian, or legal representative for under-18s or
+represented adults. There is no legal-representative workflow distinct from sharing.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope: capture representative details + authority at signup for under-18 DOB; store an
+auditable representative record; invite/accept/revoke/list; show representatives separately
+from trusted individuals.
+Out of scope decision: whether a representative gets a linked account and/or automatic
+record access (see open decisions — default is capture-only, no auto access).
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-patient-representatives.js`:
+  createTable('patient_representatives'):
+    id                       increments PK
+    uuid                     uuid unique defaultTo gen_random_uuid()
+    patient_user_uuid        uuid notNullable FK users.uuid onDelete CASCADE, index
+    representative_user_uuid uuid nullable FK users.uuid onDelete SET NULL  // set on accept
+    representative_name      string notNullable
+    representative_email     string notNullable
+    relationship             string notNullable      // 'parent'|'guardian'|'legal_representative'|...
+    authority_basis          string nullable          // free text / enum, e.g. 'parental_responsibility'
+    status                   string notNullable defaultTo 'Pending'  // Pending|Active|Revoked
+    invite_token_hash        string unique nullable
+    invite_expires_at        timestamp nullable
+    invited_at               timestamp nullable
+    accepted_at              timestamp nullable
+    revoked_at               timestamp nullable
+    timestamps(true, true)
+    unique(['patient_user_uuid','representative_email'])
+
+Keep this SEPARATE from patient_trusted_individuals — revoking a representative must not
+touch trusted-individual shares and vice versa.
+
+--------------------------------------------------------------------------------
+BACKEND
+--------------------------------------------------------------------------------
+Signup validation (authentication/index.js patient handler):
+  - Compute age from date_of_birth. If under 18, require and validate:
+    representative_name, representative_email, relationship, authority_confirmed (Boolean,
+    must be true). Reject signup (400) if missing/false.
+  - On successful under-18 signup, insert a patient_representatives row (status 'Pending')
+    in the signup transaction and send the representative invite email (reuse the
+    trusted-individual invite template/token pattern; new template
+    backend/email/templates/representative_invite.js).
+
+New route folder medivault-cloud/backend/representatives/index.js, prefix '/representatives'.
+Copy the auth/public_routes/token structure from trusted-individuals/index.js.
+  GET  /representatives                       -> caller's representatives (as patient).
+  POST /representatives                        -> invite a representative (name,email,relationship,
+                                                  authority_basis). status Pending + email.
+  POST /representatives/:uuid/revoke           -> status Revoked, revoked_at=now.
+  GET  /representatives/invite/:token          -> public: invite details.
+  POST /representatives/invite/:token/accept   -> public: link representative_user_uuid if the
+                                                  email matches/creates a user; status Active,
+                                                  accepted_at=now.
+  POST /representatives/invite/:token/reject   -> public: status Revoked.
+Representative authority does NOT grant document access by default (see decisions).
+
+--------------------------------------------------------------------------------
+FRONTEND — medivault-cloud
+--------------------------------------------------------------------------------
+- Signup (src/routes/sign-up/): after DOB entry, if under 18 show a representative step
+  (name, email, relationship select, "I confirm I have authority to act on behalf of this
+  patient" checkbox). Submit fields with signup.
+- Profile/team UI: show "Legal representatives" as a section SEPARATE from trusted
+  individuals, with clear labels ("Parent/guardian", "Authority to act on behalf of patient")
+  and invite/revoke actions. Reuse the trusted-individual accept page pattern for
+  /representatives/invite acceptance.
+
+--------------------------------------------------------------------------------
+ADMIN — vitaspan-admin-dashboard (optional)
+--------------------------------------------------------------------------------
+Read-only representative status on the patient detail page. Add revoke/mark-verified only
+if operations require manual verification.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- Under-18 signup cannot complete without representative_name, representative_email,
+  relationship, and authority confirmation.
+- A patient_representatives row is stored with status and audit timestamps.
+- Representatives are displayed separately from trusted individuals.
+- Revoking a representative does not alter any trusted-individual shares.
+- Invite → accept → Active flow works and links representative_user_uuid when the invitee
+  has/creates an account (if account linking is in scope — see decisions).
+- OKF note added for /representatives.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- Under-18 signup without representative details -> 400; with details -> user + Pending
+  representative row + invite email. Accept via token -> Active. Revoke -> Revoked, and
+  confirm a trusted-individual share for the same patient is untouched.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Is representative account creation/linking required at launch, or is capture-only enough?
+  Default: capture + invite record now; account linking supported but not required to launch.
+- Do representatives get automatic patient record access? Default: NO — legal authority is
+  recorded, access is granted separately via existing sharing if the patient/policy allows.
+- Represented-adult flow (over-18 with a representative): default to the same invite path,
+  no age gate, initiated from profile rather than signup.

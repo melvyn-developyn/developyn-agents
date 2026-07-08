@@ -1,0 +1,174 @@
+Title: Implement emergency break-glass access
+
+Phase: 2 - access-control depth
+Read first: _CONVENTIONS.md.
+Emits security events — see security-monitoring-evidence.txt (break-glass start/end/revoke
+are critical events).
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today) — READ THIS, the access model is specific
+--------------------------------------------------------------------------------
+Clinician document access is gated by APPROVED/CREATED rows in patient_clinician_share.
+The gate is built by the query helper secure_document_access(db, status, include_records)
+in medivault-cloud/backend/utils/knex/index.js: it inner-joins medical_records to
+patient_clinician_share on (patient_uuid, record_type_id OR record_id). If there is no
+approved share, the clinician sees nothing.
+
+The endpoints that use it (medivault-cloud/backend/documents/index.js):
+  - POST /documents/get-by-patient-id (line ~718) — clinician lists a patient's docs.
+  - POST /documents/get-signed-url (line ~932) — clinician opens a document.
+  - POST /documents/log-access (line ~1655) — records a view into
+    medical_records_access_history (clinician_user_id, patient_user_id, record_id).
+
+Break-glass must make an ACTIVE emergency-access record temporarily satisfy this read
+path for one clinician↔patient pair, read-only, time-limited, fully logged.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms allow authorised clinicians to access patient info without prior consent in an
+emergency (to protect life/safety or where legally required), fully logged and audited.
+No break-glass feature exists.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope: start/end/status endpoints; a read-only access override for document listing +
+signed URLs while active; time-limited auto-expiry; per-event audit; admin audit + revoke.
+Out of scope (start narrow): write actions, notes, sharing, risk, or any non-document
+patient area. Break-glass grants READ-ONLY document access only in v1.
+
+--------------------------------------------------------------------------------
+DATA MODEL — migration in medivault-cloud/backend/database-utils/migrations/
+--------------------------------------------------------------------------------
+`<timestamp>_add-break-glass-access.js`:
+  createTable('break_glass_access'):
+    id             increments PK
+    uuid           uuid unique defaultTo gen_random_uuid()
+    patient_uuid   uuid notNullable FK users.uuid onDelete CASCADE
+    clinician_uuid uuid notNullable FK users.uuid onDelete CASCADE
+    clinic_uuid    uuid nullable
+    reason_code    string notNullable
+    justification  text notNullable
+    starts_at      timestamp notNullable defaultTo now
+    expires_at     timestamp notNullable
+    revoked_at     timestamp nullable
+    created_at     timestamp defaultTo now
+    index(['patient_uuid','clinician_uuid'])
+    index(['expires_at'])
+
+  createTable('break_glass_access_events'):
+    id                   increments PK
+    break_glass_access_id integer notNullable FK break_glass_access.id onDelete CASCADE
+    event_type           string notNullable    // 'start'|'end'|'revoke'|'document_view'|'signed_url'
+    document_uuid        uuid nullable
+    action               string nullable
+    ip_address           string nullable
+    user_agent           string nullable
+    created_at           timestamp defaultTo now
+    index(['break_glass_access_id'])
+
+"Active" = revoked_at IS NULL AND expires_at > now(). Default window: 4 hours (config).
+
+--------------------------------------------------------------------------------
+BACKEND — new route folder medivault-cloud/backend/break-glass/index.js
+--------------------------------------------------------------------------------
+Register prefix '/break-glass'. onRequest jwtVerify.
+Eligibility guard used by start: req.user.type must be 'clinician'. (Optionally require an
+existing clinic relationship — see decisions.) Non-clinicians -> 403.
+
+POST /break-glass/start
+  body: typebox.Object({
+    patient_uuid: typebox.String({ format: 'uuid' }),
+    reason_code: typebox.Enum([...allowed reason codes...]),
+    justification: typebox.String({ minLength: 10 }),
+    confirm: typebox.Boolean()   // must be true
+  })
+  - Reject if confirm !== true (400) or caller is not a clinician (403).
+  - Reject if an active break_glass_access already exists for this pair (409) — return it.
+  - Insert break_glass_access (expires_at = now + window); insert a 'start' event with
+    req.ip / user-agent; emit critical security event; email patient/support if policy says.
+  - Return the active record (uuid, expires_at).
+
+POST /break-glass/end        body: { break_glass_uuid }
+  - Set revoked_at=now for the caller's active record; insert 'end' event.
+
+GET /break-glass/status?patient_uuid=...
+  - Return the caller's active record for that patient (or null) with expires_at.
+
+GET /break-glass/audit       (admin-only OR expose the equivalent from admin-backend —
+  see admin section) list events filtered by clinic/clinician/patient/date/reason/status.
+
+--------------------------------------------------------------------------------
+BACKEND — wire the override into the read path (documents/index.js)
+--------------------------------------------------------------------------------
+Add a helper has_active_break_glass(db, clinician_uuid, patient_uuid) -> record|null
+(revoked_at null, expires_at > now).
+
+- POST /documents/get-by-patient-id: if the normal secure_document_access query returns
+  nothing (or before it), check has_active_break_glass; if active, return that patient's
+  records via a read-only query (e.g. secure_document_access_for_viewer or a direct
+  medical_records.where({user_uuid: patient_uuid})) and insert a 'document_view' break-glass
+  event. Do NOT widen normal (non-break-glass) results.
+- POST /documents/get-signed-url: allow the signed URL if the clinician has normal access
+  OR an active break-glass record for that document's patient; on break-glass access insert
+  a 'signed_url' event with document_uuid.
+- POST /documents/log-access: when the access is via break-glass, also insert a break-glass
+  event so the emergency context is captured alongside medical_records_access_history.
+
+CRITICAL: when NO active break-glass record exists, all three endpoints must behave exactly
+as today. Break-glass is purely additive.
+
+--------------------------------------------------------------------------------
+FRONTEND — medivault-cloud
+--------------------------------------------------------------------------------
+- Where a clinician is denied a patient's documents, show "Request emergency access"
+  (only if req.user is a clinician). High-friction modal: reason_code select + free-text
+  justification (min length) + explicit confirmation checkbox -> POST /break-glass/start.
+- While active, show a prominent persistent banner ("Emergency access active until HH:MM –
+  all activity is logged") with an "End access" action.
+- Optionally surface break-glass access to the patient in their access history if policy approves.
+
+--------------------------------------------------------------------------------
+ADMIN — vitaspan-admin-dashboard + admin-backend
+--------------------------------------------------------------------------------
+- admin-backend: GET break-glass audit endpoint (reads break_glass_access +_events, patient/
+  clinician joined), gated fastify.authenticate('clinic_admin'); POST revoke endpoint
+  (sets revoked_at, inserts 'revoke' event) gated appropriately.
+- dashboard: "Break Glass Audit" page (src/routes/dashboard/break-glass/) with filters by
+  clinic, clinician, patient, date, reason, status; and a revoke action on active records.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- Non-clinicians cannot start break-glass (403).
+- Start requires reason_code + justification (>=10 chars) + confirm=true.
+- An active record grants READ-ONLY document listing + signed URLs for that patient only.
+- Access auto-expires after the window and can be revoked early (patient end or admin revoke).
+- Every document view / signed URL under break-glass writes a break_glass_access_events row;
+  log-access records the emergency context.
+- With no active record, /documents/get-by-patient-id, /get-signed-url, /log-access behave
+  identically to before (regression-guarded).
+- Admin can list and revoke break-glass access.
+- Start/end/revoke emit critical security events.
+- OKF note added for /break-glass.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Migration up/down clean.
+- As a clinician with NO share: listing a patient's docs is empty; start break-glass;
+  listing now returns read-only docs and a signed URL opens; events rows written; end/expire
+  and confirm access is gone. Confirm a patient (non-clinician) token gets 403 on start.
+- Regression: with no active record, the three document endpoints return identical results
+  to a pre-change run for a clinician who DOES have a normal share.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Allowed reason_code set (e.g. life_at_risk, incapacitated_patient, legal_requirement,
+  safeguarding). Default to that list.
+- Access window length (2h vs 4h). Default 4h, config-driven.
+- Require an existing clinic relationship to start, or allow any verified clinician? Default:
+  allow any verified clinician but log clinic_uuid where known.
+- Notify the patient on start? Default: yes, email + visible in access history.

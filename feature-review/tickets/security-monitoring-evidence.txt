@@ -1,0 +1,109 @@
+Title: Add security monitoring evidence and security event logging
+
+Phase: 1 - structured events + runbook; Phase 2 optional dashboard
+Read first: _CONVENTIONS.md.
+
+--------------------------------------------------------------------------------
+CONTEXT (what exists today)
+--------------------------------------------------------------------------------
+- Both backends run Fastify with pino logging enabled
+  (medivault-cloud/backend/index.js: `require('fastify')({ logger: true })`), so
+  fastify.log.{info,warn,error} already produces structured JSON logs.
+- Error alerting exists: medivault-cloud/backend/email-error.js emails the team on caught
+  errors (non-DEV/LOCAL). There is NO dedicated security-event stream or table.
+- Auth flows (authentication/index.js), upload (upload/index.js, ClamAV scan), documents
+  access logging, and — once built — break-glass and suspension are the security-sensitive
+  actions to instrument.
+
+--------------------------------------------------------------------------------
+PROBLEM
+--------------------------------------------------------------------------------
+Terms claim continuous security monitoring. There are controls and pino logs but no
+consistent security-event model and no documented monitoring evidence.
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+In scope (Phase 1): a tiny shared emit_security_event helper that writes a structured log
+line (and, if the table is added, a DB row); instrument the key actions; write a runbook.
+Out of scope: a full SIEM. Do NOT log secrets, tokens, raw medical content, or documents.
+The admin dashboard page is optional Phase 2 — do not build unless asked.
+
+--------------------------------------------------------------------------------
+IMPLEMENTATION
+--------------------------------------------------------------------------------
+1. Shared helper: medivault-cloud/backend/utils/security-event.js (and mirror in
+   admin-backend/utils/ if admin actions are instrumented there):
+     emit_security_event(fastify, { event_type, severity, actor_user_uuid?, target_user_uuid?,
+       clinic_uuid?, ip_address?, user_agent?, metadata? })
+   - Always: fastify.log.warn({ security_event: true, ...fields }, event_type).
+   - If the security_events table exists (step 2), also insert a row.
+   - Redact: never include passwords, tokens, OTP codes, NHS numbers, or document contents
+     in metadata. Whitelist metadata keys per event_type.
+
+2. (Optional but recommended) migration `<timestamp>_add-security-events.js` in
+   medivault-cloud/backend/database-utils/migrations/:
+     createTable('security_events'):
+       id increments PK
+       source_service   string notNullable      // 'medivault-cloud' | 'admin-backend'
+       event_type       string notNullable, index
+       severity         string notNullable       // 'info'|'warning'|'critical'
+       actor_user_uuid  uuid nullable
+       target_user_uuid uuid nullable
+       clinic_uuid      uuid nullable
+       ip_address       string nullable
+       user_agent       string nullable
+       metadata_json    jsonb nullable
+       created_at       timestamp defaultTo now, index
+
+3. Instrument (call emit_security_event at each):
+     - repeated failed logins (burst) and 2FA failures            [authentication/index.js]
+     - password reset requested                                   [authentication/index.js]
+     - malware detected on upload (ClamAV positive)               [upload/index.js] severity critical
+     - break-glass start / end / revoke                           [break-glass ticket] critical
+     - account suspend / reinstate / close                        [suspension ticket] warning+
+     - admin privilege change, clinic feature toggle              [admin-backend clinics/admin-users]
+   Add only where the action already runs; do not restructure the flows.
+
+4. Alerting: reuse the email-error.js pattern (or add a thin emit for severity='critical')
+   to email the security alert list on critical events (malware, break-glass start,
+   repeated login failure bursts). Gate off in DEV/LOCAL like email-error.js.
+
+--------------------------------------------------------------------------------
+OPS / RUNBOOK (documentation deliverable)
+--------------------------------------------------------------------------------
+Add a runbook (medivault-cloud/okf/ playbook or repo docs) documenting the active
+monitoring evidence: Cloud Run / GCP Cloud Logging, Error Reporting, uptime checks,
+dependency/vulnerability scanning, ClamAV service health, and where critical alerts route.
+This document IS the "continuous monitoring" evidence the Terms reference.
+
+--------------------------------------------------------------------------------
+ADMIN (Phase 2, optional — do NOT build unless asked)
+--------------------------------------------------------------------------------
+Security Events page in vitaspan-admin-dashboard for super_user, filter by severity/type/
+date/user/clinic, reading a GET /security-events admin endpoint. Never expose raw payloads.
+
+--------------------------------------------------------------------------------
+ACCEPTANCE CRITERIA
+--------------------------------------------------------------------------------
+- emit_security_event exists and is called at every action listed in step 3.
+- Each emitted event is a structured log line with security_event:true and no secrets.
+- Critical events (malware upload, break-glass start) trigger an alert when those
+  features exist.
+- A monitoring runbook/playbook exists describing active monitoring and alert routing.
+- If the table is added, rows are written and contain no sensitive payloads.
+
+--------------------------------------------------------------------------------
+VERIFICATION
+--------------------------------------------------------------------------------
+- Trigger a failed login burst and a simulated malware upload in a dev env; confirm a
+  security_event log line (and row, if table added) with correct severity and NO secrets.
+- Grep the helper's metadata whitelist to confirm no token/password/NHS keys pass through.
+
+--------------------------------------------------------------------------------
+OPEN DECISIONS
+--------------------------------------------------------------------------------
+- Where monitoring evidence lives: OKF playbook vs infra repo. Default: OKF playbook.
+- Whether to persist security_events to DB now or logs-only. Default: add the table (cheap,
+  enables the optional dashboard later).
+- Security alert recipient list (reuse email-error.js recipients by default).

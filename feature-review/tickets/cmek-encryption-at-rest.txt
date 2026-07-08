@@ -1,0 +1,111 @@
+PARENT TICKET: Encrypt medical records at rest with CMEK (Cloud KMS) across all environments
+
+Priority: High   Labels: security, infra, compliance   Sprint: current
+Estimate: ~6-7 dev-days (one engineer; prod migration is a scheduled off-peak activity)
+Read first: _CONVENTIONS.md is for app tickets; THIS is an infra/ops ticket and needs NO app code change.
+
+--------------------------------------------------------------------------------
+WHY
+--------------------------------------------------------------------------------
+Medical record files in the MEDICAL_RECORDS_BUCKET GCS buckets are protected only by
+Google-managed keys. Anyone with GCP IAM read on the bucket (developers, SREs, project
+owners) can download patient files in plaintext, bypassing the app's access controls
+(patient_clinician_share, break-glass, etc.). Storage helper today:
+medivault-cloud/backend/utils/google-cloud/storage/index.js:21
+  bucket.upload(local_file, { destination })   // no kmsKeyName; TODO comment on line 23.
+
+Move all environments to Customer-Managed Encryption Keys (CMEK) via Cloud KMS:
+per-project key, restricted decrypt, audited kill-switch, separation of duties.
+
+KEY FACT: bucket-default CMEK is transparent. bucket.upload(...) and getSignedUrl(...)
+keep working unchanged; the Cloud Run runtime SA needs NO KMS permission (only each
+project's GCS service agent does). Rollout is control-plane only, zero downtime.
+
+Environments — CONFIRMED from vitaspan-terraform (tfvars + storage.tf). The documents
+bucket is already Terraform-managed (google_storage_bucket.documents, storage.tf), so
+subtask 2 extends the existing repo rather than creating new IaC.
+  test  = vitaspan-test        (#984610028357)  bucket test-vitaspan-documents  europe-west2
+  sip   = sip-prod-494215      (#911099994997)  bucket sip-prod-documents       europe-west6  <-- different region!
+  prod  = vitaspan-production  (#1063295154880) bucket vitaspan-documents       europe-west2
+GCS service agents: service-<PROJECT#>@gs-project-accounts.iam.gserviceaccount.com
+Terraform state: gs://terraform-state-vitaspan (prefix 'vitaspan'); per-env var-files
+(test.tfvars / sip.tfvars / terraform.tfvars) with terraform SA impersonation.
+Keyring location = bucket location (var.region): europe-west6 for sip, europe-west2 otherwise.
+
+--------------------------------------------------------------------------------
+DEFINITION OF DONE (whole ticket)
+--------------------------------------------------------------------------------
+- All three buckets have a CMEK default key; 100% of objects (new + existing) report kmsKeyName.
+- Cloud Run runtime SA and the GitHub deploy SA (deploytogcrsa@) have NO KMS role;
+  only each project's GCS service agent has cryptoKeyEncrypterDecrypter on the key.
+- KMS admin held by a principal separate from app deployers (separation of duties).
+- KMS audit logging on; alerts on key disable/destroy and decrypt-error spikes.
+- Rollback + kill-switch + rotation documented in a runbook.
+- App upload/download, signed URLs, AI summary/categorise, ClamAV verified on CMEK objects
+  in every environment.
+
+--------------------------------------------------------------------------------
+SUBTASKS (implementation order; est / depends-on)
+--------------------------------------------------------------------------------
+1. Prep & confirm inputs                                   0.5d  / -
+   Run `gcloud storage buckets describe` per env to confirm bucket location
+   (europe-west2 vs eu multi-region -> keyring location must match). Capture each GCS
+   service agent (`gcloud storage service-agent --project=<id>`). Agree key naming
+   (keyring 'medical-records', key 'gcs-medical-records').
+   AC: doc listing location + service-agent email + key path per env.
+
+2. Terraform module for KMS + bucket default key           1d    / 1
+   google_kms_key_ring, google_kms_crypto_key (rotation_period 90d),
+   google_kms_crypto_key_iam_member (GCS service agent -> roles/cloudkms.cryptoKeyEncrypterDecrypter),
+   and default_kms_key_name on the bucket. Parameterised by project/location/bucket.
+   (Manual gcloud fallback acceptable, but capture as IaC since repo has none today.)
+   AC: `terraform plan` clean for test; no application code changed.
+
+3. TEST - apply CMEK & verify new uploads                  0.5d  / 2
+   Apply module to vitaspan-test. IAM grant MUST precede setting the bucket default key.
+   AC: a file uploaded via the app returns a non-empty kmsKeyName
+       (`gcloud storage objects describe ... --format='value(kmsKeyName)'`).
+
+4. TEST - migrate back-catalogue                           0.5d  / 3
+   Rewrite existing objects: `gcloud storage objects update "gs://<bucket>/**" --encryption-key=<key path>`.
+   AC: `objects list --format='table(name,kmsKeyName)'` shows zero objects without the CMEK key.
+
+5. TEST - validation gate                                  0.5d  / 4
+   Exercise: upload, in-app download, signed-URL open, an AI summary/categorise run,
+   a ClamAV-scanned upload.
+   AC: all pass; no errors in Cloud Run or KMS logs.
+
+6. SIP - apply, migrate, validate                          0.5d  / 5
+   Re-run the TF module for sip; repeat steps 3-5.
+   AC: same as 3-5 for sip; soak briefly under realistic use.
+
+7. PROD - apply off-peak & migrate with monitoring         1d    / 6
+   Off-peak window: apply module, verify a new upload, then rewrite the back-catalogue in
+   the background while watching KMS + GCS error rates.
+   AC: 100% CMEK, no elevated error rate, patients unaffected.
+
+8. Separation of duties + IAM least-privilege review       0.5d  / 3
+   Confirm deploytogcrsa@ and the Cloud Run runtime SA have NO KMS roles; assign
+   roles/cloudkms.admin to the security/platform owner, not app deployers.
+   AC: IAM policy review attached showing the split.
+
+9. KMS audit logging + alerting                            0.5d  / 3
+   Enable Cloud KMS Data Access audit logs; alert on DisableCryptoKeyVersion /
+   DestroyCryptoKeyVersion and decrypt-error spikes. Feeds the security-monitoring ticket.
+   AC: a test alert fires.
+
+10. Runbook: rollback, kill-switch, rotation               0.5d  / 5   (Med priority)
+   Document rollback (`--clear-default-encryption-key`, KEEP key enabled), kill-switch
+   (disable key version - incident only), and that 90d rotation needs no re-encrypt.
+   AC: runbook reviewed and linked on the parent ticket.
+
+--------------------------------------------------------------------------------
+SEQUENCING / RISKS
+--------------------------------------------------------------------------------
+- 1->2 first (unblocks all). 3->4->5 on test. 8 & 9 in parallel once test is up.
+  6 then 7 (prod) late in the sprint in a scheduled window. 10 alongside.
+- Subtasks 8-10 are non-negotiable for a security ticket - do not slip them.
+- #1 rollout mistake: setting the bucket default key before granting the GCS service
+  agent -> uploads fail. Enforced by subtask ordering (grant in #2/#3 before default key).
+- NEVER disable/destroy the key as a rollback - that orphans migrated objects. Rollback =
+  clear the bucket default only.
