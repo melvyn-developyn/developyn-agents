@@ -30,7 +30,12 @@ async function main() {
   const app = Fastify({ logger: true });
 
   await app.register(fastifyCookie);
-  await app.register(fastifySecureSession, { key: sessionKey });
+  // path:'/' is essential — without it the cookie defaults to the login route's
+  // directory (/api/auth) and never reaches /api/dashboard, /api/timesheet, etc.
+  await app.register(fastifySecureSession, {
+    key: sessionKey,
+    cookie: { path: '/', httpOnly: true, sameSite: 'lax', secure: true },
+  });
 
   await app.register(authRoutes, { prefix: '/api' });
   await app.register(dashboardRoutes, { prefix: '/api' });
