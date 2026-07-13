@@ -362,6 +362,20 @@ DNS management of remaining staged sites (verified 2026-07-08) - NOT self-serve,
 - ledgability.co.uk     -> GoDaddy (domaincontrol.com)
 Cutover for these = owner changes apex A (+ www) to 142.93.41.146 in that control panel; leave all mail records alone.
 
+Session update (2026-07-13)
+---------------------------
+
+Cut over to DigitalOcean this session:
+- telehandlers.co.uk - DNS moved OFF GoDaddy (domaincontrol.com nameservers) to DigitalOcean DNS. Owner switched registrar (123reg) NS to ns1/2/3.digitalocean.com; verified live via public resolvers (1.1.1.1/8.8.8.8/9.9.9.9/OpenDNS all show DO NS + apex 142.93.41.146). Zone is web-only: apex A -> 142.93.41.146 and www CNAME->apex; NO mail (no MX/SPF/DKIM/DMARC), no CAA, no other subdomains - simplest zone in the batch.
+- Fresh content re-sync before cutover: staged copy was stale (frozen 2024-10-09) and URL-polluted; re-imported live DB (current to 2026-07-08, 336 posts) + uploads (39M) from AWS 52.211.87.147.
+- Cleaned DB with wp-cli search-replace: 4 dev subdomains (evantest/gtlbdz/melvyn/telehandlers .wordpress.developyn.com) -> telehandlers.co.uk, forced http->https, fixed source path /var/www/wordpress -> /var/www/html. 0 dev refs / 0 stale paths remain.
+- wp-config: WP_HOME/WP_SITEURL set https, reverse-proxy X-Forwarded-Proto TLS snippet added (prevents redirect loop), debug off.
+- Caddy block switched from http-only to auto-HTTPS; real Let's Encrypt certs issued for apex + www. Verified: apex 200, www 301->apex, http 308->https, /wp-json/ 200, /sitemap_index.xml 200, /wp-admin/ 302->login, no PHP fatals.
+- Backups: pre-cutover /srv/wordpress/backups/telehandlers/pre-cutover-20260713093822 (DB + full site tar; pointer at latest-pre-cutover-backup.txt).
+- NOTE: local Mac network runs a transparent DNS proxy that hijacks @nameserver queries (e.g. dig @ns1.digitalocean.com returns whatever GoDaddy/recursive serves). Always verify DNS via public resolvers (@1.1.1.1) during cutovers, not direct-NS dig.
+
+DNS provider correction: telehandlers.co.uk was listed as GoDaddy in the 2026-07-08 notes; registrar is actually 123reg with DNS previously delegated to GoDaddy (domaincontrol.com). Now on DigitalOcean DNS.
+
 Reverse-proxy HTTPS detection (REQUIRED at every cutover)
 ---------------------------------------------------------
 

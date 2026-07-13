@@ -97,11 +97,11 @@ Holiday Tracker app migrated and cut over on DigitalOcean:
   - `bradleygasservices.co.uk`
   - `pedmoreroofing.com`
   - `developyn.com`
+  - `telehandlers.co.uk`
 - Migrated but not cut over yet:
   - `oakhilloptical.co.uk`
   - `meirglobal.org`
   - `aps-ltd.com`
-  - `telehandlers.co.uk`
   - `ledgability.co.uk`
   - `venturema.co.uk`
   - `nationalhiresolutions.co.uk`
@@ -196,6 +196,30 @@ Verification completed:
 - No post-switch `5xx` found.
 - No recent PHP fatal, parse, or uncaught errors found in container logs.
 
+## Developyn Upgrade State
+
+Developyn has been upgraded and verified (2026-07-13).
+
+Backup before upgrade:
+
+- `/srv/wordpress/backups/developyn/wp-php-upgrade-20260712225800` (DB dump `developyn-db.sql`, `html.tar.gz` excl. cache, `docker-compose.yml.bak`)
+
+Changes completed:
+
+- Switched only Developyn from `wordpress:php7.4-apache` to `wordpress:php8.3-apache`.
+- Updated WordPress core from `6.9.4` to `7.0.1` (via WP-CLI, DB already at latest schema).
+- Updated 13 of 14 plugins with available updates (Forminator `1.54.0`->`1.55.1`, Yoast `27.7`->`28.0`, Otter `3.1.11`->`3.2.0`, Redirection `5.7.5`->`5.9.0`, etc.). Backup: `/srv/wordpress/backups/developyn/plugins-upgrade-20260712230532` (DB + `plugins.tar.gz`). The paid `all-in-one-wp-migration-unlimited-extension` stayed at `2.82` — CLI can't fetch it without the ServMask license; update it from wp-admin if needed.
+
+Verification completed:
+
+- `wp-developyn` running on PHP `8.3.32`, WordPress `7.0.1`.
+- `core verify-checksums` passes (only a harmless stray `wp-admin/.pid`).
+- Homepage, `/about/`, `/services/`, `/contact/` return `200`; `/wp-admin/` `302` to login.
+- 30 active plugins unchanged (none deactivated by a fatal).
+- No PHP fatal/parse errors in container logs; page cache purged.
+
+Earlier (2026-07-13): all 76 Forminator forms had their reCAPTCHA v3 score threshold raised `0.5` -> `0.7` to cut contact-form spam.
+
 ## Important DNS Context
 
 Do not change DNS or Route 53 in this session without explicit user permission.
@@ -252,7 +276,7 @@ Meir Global is staged on DigitalOcean but DNS is not cut over:
 Additional sites staged on DigitalOcean but not cut over:
 
 - `aps-ltd.com`: old AWS IP `3.250.158.116`, container `wp-aps-ltd` on `127.0.0.1:8086`, DB `aps_ltd`, backup `/srv/wordpress/backups/aps-ltd/staged-20260630232707`, WordPress `6.8.5`, staged URLs intentionally set to `http://aps-ltd.com` for local host-header testing.
-- `telehandlers.co.uk`: old AWS IP `52.211.87.147`, container `wp-telehandlers` on `127.0.0.1:8087`, DB `telehandlers`, backup `/srv/wordpress/backups/telehandlers/staged-20260630232729`, WordPress `6.6.5`.
+- `telehandlers.co.uk`: **CUT OVER 2026-07-13**. Old AWS IP `52.211.87.147`, container `wp-telehandlers` on `127.0.0.1:8087`, DB `telehandlers`, WordPress `6.6.5`. DNS moved OFF GoDaddy (`domaincontrol.com`) to **DigitalOcean DNS** — owner switched registrar (123reg) NS to `ns1/2/3.digitalocean.com`; zone has only apex `A -> 142.93.41.146` + `www` CNAME→apex (no mail/MX/TXT/CAA on this domain). Fresh content re-sync done before cutover (DB current to 2026-07-08, uploads 39M). Search-replace cleaned 4 dev subdomains (`*.wordpress.developyn.com`), forced http→https, fixed `/var/www/wordpress`→`/var/www/html`; wp-config reverse-proxy TLS snippet added. HTTPS live (Let's Encrypt, apex+www). Pre-cutover backup `/srv/wordpress/backups/telehandlers/pre-cutover-20260713093822` (pointer at `latest-pre-cutover-backup.txt`); original staged backup `/srv/wordpress/backups/telehandlers/staged-20260630232729`.
 - `ledgability.co.uk`: old AWS IP `54.217.50.179`, container `wp-ledgability` on `127.0.0.1:8088`, DB `ledgability`, backup `/srv/wordpress/backups/ledgability/staged-20260630233429`, WordPress `6.8.5`, PHP container `8.1` to match source PHP 8.1.
 - `venturema.co.uk`: old AWS IP `3.249.250.224`, container `wp-venturema` on `127.0.0.1:8089`, DB `venturema`, backup `/srv/wordpress/backups/venturema/staged-20260630233524`, WordPress `6.3.8`. AWS instance/tag referred to this as `venturemma`, but the live domain/config is `venturema.co.uk`.
 - `nationalhiresolutions.co.uk`: old AWS IP `34.241.136.6`, container `wp-nationalhire` on `127.0.0.1:8091`, DB `nationalhire`, backup `/srv/wordpress/backups/nationalhire/staged-20260630234655`, WordPress `6.9.4`, staged URLs intentionally set to `http://nationalhiresolutions.co.uk` for local host-header testing.
