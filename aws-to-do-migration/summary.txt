@@ -239,6 +239,9 @@ Developyn (developyn.com):
 - Public checks passed: homepage 200, www canonicalizes to apex with 200, /wp-json/ 200, /sitemap.xml 200.
 - Real Let's Encrypt certificates issued for apex and www.
 - No recent PHP fatal, parse, uncaught, memory, or Caddy 5xx errors found after cutover.
+- On 2026-07-22, redesigned the live Industries and News pages through /wp-content/mu-plugins/developyn-content-hubs.php. Industries now has an 18-sector filtered directory; News has featured stories, topic filters, search, reading times, and 12-post pagination. Desktop/mobile interaction, links, overflow, console, and HTTP checks passed. Mobile Lighthouse was 86/92/96/100 for Industries and 95/93/96/100 for News. Final reports are industries-lighthouse-final.json and news-lighthouse-final.json. The checksum-verified rollback is /srv/wordpress/backups/developyn/performance-optimization/pre-change.
+- On 2026-07-22, completed an industry-subpage redesign pilot for /education-and-training/ using [developyn_industry_education] in the same MU plugin. It preserves the URL, template, featured image, canonical, and Yoast metadata while adding a responsive hero, five solution modules, outcomes, implementation steps, and clearer CTAs. Desktop/mobile and link checks passed. Mobile Lighthouse was 96/93/96/100 with 1.1s LCP.
+- On 2026-07-22, applied the approved design to the remaining 17 industry pages through the shared [developyn_industry_page] renderer. Each page retains sector-specific content, images, links, proof points and SEO metadata. All 18 pages passed desktop/mobile structural, image, canonical, overflow, browser-console, content-link and HTTP checks. Representative mobile Lighthouse performance was 91-95 with SEO 100. The checksum-verified pre-change rollback was refreshed immediately before rollout and includes the approved Education pilot state.
 
 For all staged but not cut-over sites:
 - Caddy blocks are HTTP-only for apex and www hostnames.
@@ -404,3 +407,10 @@ All WP containers run wordpress:*-apache = Apache prefork + mod_php, so RAM scal
 - New sites: add the same two volume mounts + mem_limit block to their compose service.
 - To re-tune: edit the two files, then docker compose restart. To roll back: restore docker-compose.yml.bak-tune-<ts> and docker compose up -d.
 - Not done (revisit only if packing many more sites): mod_php -> PHP-FPM pm=ondemand, which drops idle sites to ~zero workers but means moving off the apache image to fpm behind Caddy php_fastcgi.
+
+Session update (2026-07-15)
+---------------------------
+
+- Developyn Forminator: removed the `Thanks for contacting Developyn` customer auto-response from 74 standard contact/lead forms. All 76 `Admin Email` notifications remain enabled; retained the `free-ebook` form's `Inquirer Email` transactional response.
+- Backup: `/srv/wordpress/backups/developyn/forminator-autoresponder-removal-20260714223012/forminator-form-meta-before.json` (SHA-256 `e6532cca76fe1412b2b334b5b3d09737292ac7b71df0a18c53fb56825a8e82d8`).
+- Verified every form differs from its backed-up configuration only by removal of that auto-response; `https://developyn.com/contact/` and the homepage returned `200`.
