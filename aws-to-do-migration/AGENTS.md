@@ -26,18 +26,17 @@ Core stack paths on the DigitalOcean host:
 
 WordPress containers on DigitalOcean:
 
-- `wp-ace-sections` -> `127.0.0.1:8081`, image `wordpress:php8.1-apache`
-- `wp-bradleygas` -> `127.0.0.1:8082`, image `wordpress:php8.1-apache`
+- `wp-ace-sections` -> `127.0.0.1:8081`, image `wordpress:php8.4-apache`
+- `wp-bradleygas` -> `127.0.0.1:8082`, image `wordpress:php8.4-apache`
 - `wp-pedmore` -> `127.0.0.1:8083`, image `wordpress:php8.4-apache`
-- `wp-oakhill` -> `127.0.0.1:8084`, image `wordpress:php7.4-apache`
-- `wp-meirglobal` -> `127.0.0.1:8085`, image `wordpress:php7.4-apache`
-- `wp-aps-ltd` -> `127.0.0.1:8086`, image `wordpress:php7.4-apache`
-- `wp-telehandlers` -> `127.0.0.1:8087`, image `wordpress:php7.4-apache`
-- `wp-ledgability` -> `127.0.0.1:8088`, image `wordpress:php8.1-apache`
-- `wp-venturema` -> `127.0.0.1:8089`, image `wordpress:php7.4-apache`
-- `wp-nationalhire` -> `127.0.0.1:8091`, image `wordpress:php7.4-apache`
-- `wp-igs` -> `127.0.0.1:8092`, image `wordpress:php7.4-apache`
-- `wp-developyn` -> `127.0.0.1:8093`, image `wordpress:php7.4-apache`
+- `wp-oakhill` -> `127.0.0.1:8084`, image `wordpress:php8.4-apache`
+- `wp-meirglobal` -> `127.0.0.1:8085`, image `wordpress:php8.4-apache`
+- `wp-aps-ltd` -> `127.0.0.1:8086`, image `wordpress:php8.4-apache`
+- `wp-telehandlers` -> `127.0.0.1:8087`, image `wordpress:php8.4-apache`
+- `wp-ledgability` -> `127.0.0.1:8088`, image `wordpress:php8.4-apache`
+- `wp-venturema` -> `127.0.0.1:8089`, image `wordpress:php8.4-apache`
+- `wp-igs` -> `127.0.0.1:8092`, image `wordpress:php8.4-apache`
+- `wp-developyn` -> `127.0.0.1:8093`, image `wordpress:php8.3-apache`
 - `wp-mariadb` -> `mariadb:10.6`
 
 Monitoring containers:
@@ -81,6 +80,16 @@ Holiday Tracker app migrated and cut over on DigitalOcean:
 - DNS cut over in Route 53: `holiday.developyn.com A 142.93.41.146`, change `/change/C0794096VN1TSZ1LAQ51`, `INSYNC`.
 - Old EC2: `i-0bfb44fecf53d4710`, IP `34.243.119.87`, Ubuntu `18.04`, key `admin` — terminated, security group deleted.
 - HTTPS verified: login `200`, homepage `302` redirect to login, HTTP redirects to HTTPS, Let's Encrypt cert issued.
+
+### SMTP hang after migration (fixed 2026-09-11)
+
+Symptom: creating a leave request saved the row but the browser hung until refresh.
+
+- Cause: DigitalOcean blocks outbound SMTP on ports `25`, `465`, `587`. The app's SES transporter used `465`, so `POST /calendar/bookleave/` sat on a TCP connect timeout — the route awaits the notification emails before issuing its redirect, so the response never came, then finally flashed "Failed to create a leave request" despite the leave being created.
+- Fix: `config/app.json` -> `email_transporter.port` `465` -> `2465` (SES alternate TLS-wrapper port, open on DO), plus `connectionTimeout` / `greetingTimeout` / `socketTimeout` so a future SMTP outage degrades in seconds instead of hanging.
+- SES alternate ports verified open from the container: `2465` (TLS) and `2587` (STARTTLS). SES SMTP auth confirmed working on `2465`.
+- Applied via `docker cp` of the config + `docker restart`; `developyn-holiday-tracker:latest` was also rebuilt with the fix baked in. Rollback image: `developyn-holiday-tracker:pre-smtp-fix`. DB backup: `/srv/wordpress/backups/holiday-tracker/db.sqlite.pre-smtp-fix-*`.
+- Known rot: a from-scratch `docker build` of the holiday tracker fails — `node:12-slim` is Debian buster and its apt repos are archived, so `apt-get update` returns exit 100. The image can currently only be extended, not rebuilt.
 
 ## Completed Work
 
@@ -230,6 +239,8 @@ Earlier (2026-07-13): all 76 Forminator forms had their reCAPTCHA v3 score thres
 
 2026-07-22: rolled the approved content-hub design across the remaining 17 industry subpages. Each body now uses `[developyn_industry_page]`, backed by a shared data-driven renderer in `developyn-content-hubs.php`; Education retains its pilot shortcode. Every sector has page-specific headlines, imagery, five solution modules, five outcomes, relevant internal links and a tailored CTA. Construction, Manufacturing and MedTech also retain prominent proof/delivery context, including the existing induction results and MedTech compliance/timeframe claims. All original slugs, `wp-custom-template-industry` templates, featured-image metadata, Yoast titles/descriptions/focus keywords, canonicals, Open Graph metadata and Yoast JSON-LD were preserved. The obsolete All in One Schema.org visible summary/assets and stale Otter block CSS metadata are omitted. Verification covered all 18 pages at `1440px` and `390px`: one H1/main landmark, five solutions, five outcomes, three delivery steps, loaded hero image, correct canonical/description, no duplicate schema summary, no overflow, no browser errors, no failed content links and `200` responses. Representative mobile Lighthouse: Automotive `95/93/96/100` (LCP `2.8s`), Construction `91/93/96/100` (LCP `3.2s`), MedTech `95/93/96/100` (LCP `2.5s`); residual accessibility deductions remain in the shared legacy footer. Reports: `automotive-lighthouse-final.json`, `construction-lighthouse-final.json`, `medtech-lighthouse-final.json`. Immediately before rollout, `/srv/wordpress/backups/developyn/performance-optimization/pre-change` was recreated and validated by checksums, gzip integrity and a 75-table live/dump comparison; it includes the approved Education pilot state.
 
+2026-10-05: investigated a WordPress "technical issue" email blaming Otter (`themeisle-sdk/src/Modules/About_us.php` line 35, max execution time exceeded on `wp-login.php`). Otter is not the cause. `wp-developyn` repeatedly hits its `512m` cgroup limit: kernel memcg OOM kills = 5,662 since the container started (~3 weeks), 449 in the last 7 days; `wp-pedmore` has the same pattern (1,517). The OOM dumps show all 24 Apache workers busy (shared `apache-tune.conf` caps `MaxRequestWorkers 24`, ~70–80 MB RSS each), and `memswap 1g` lets the container thrash in swap, so requests stall and hit the 30s limit in whichever file they happen to be in. Developyn and Pedmore are the only sites running Seraphinite Accelerator, which fires ~400 cache-building self-requests/day from the container's own IP (`172.18.0.3`), each holding a second worker. Developyn also runs WP-Optimize alongside it. Distributed `wp-login.php` brute force (300–650 POSTs/day, rotating IPs below the existing fail2ban threshold) adds load. **Fix applied 2026-10-05 15:00 UTC (`developyn` and `pedmore` only):** added `/srv/wordpress/config/apache-tune-small.conf` (`MaxRequestWorkers 10`) mounted in place of the shared `apache-tune.conf`, set `mem_limit: 768m` + `memswap_limit: 768m` (no swap thrash), recreated only those two containers. Compose backup: `/srv/wordpress/compose/docker-compose.yml.bak-memfix-20261005145953`. Rollback: `cp docker-compose.yml.bak-memfix-20261005145953 docker-compose.yml && docker compose up -d --no-deps pedmore developyn`. Verified: limits and worker cap live, homepage/about/services/contact `200`, wp-admin `302`, `oom_kill` reset to `0` on both, no fatals after restart. To check over the next 24–48h: `oom_kill` in `/sys/fs/cgroup/system.slice/docker-<id>.scope/memory.events` stays `0` and no `Maximum execution time` errors in `docker logs`. If kills recur, follow up in wp-admin: limit Seraphinite background processing to one task and drop one of Seraphinite/WP-Optimize on Developyn.
+
 ## Spam / Security Hardening (2026-07-21)
 
 Live-diagnosed the persistent Developyn form spam from Caddy logs + DB. Root cause was NOT the v3 threshold: honeypot is already on (Forminator native + WP-Armour plugin) and insufficient, and there is **no Akismet / zero content filtering** (all 407 Forminator entries are `is_spam=0`). Worst form is id `7026` (`contact-form-location-landing-2`), 78 entries/30d. Caddy logs also showed ~32.5k/day POSTs to `xmlrpc.php` and ~5.2k/day to `wp-login.php` with no throttling.
@@ -259,6 +270,48 @@ Mitigation (block `/wp-json/batch/v1` + `?rest_route=/batch/v1` -> 403) applied 
 Core patching (2026-07-21): the 4 LIVE unpatched sites updated to `6.8.6` via wp-cli (backup DB+files first, verified home/wp-admin/batch after each): telehandlers (main host), houghton, goldcrest, prisymlabels. wp-cli reused from an existing on-host phar (`/srv/wordpress/wp-cli.phar`, WP-CLI 2.12.0) on the main host; the 3 apache droplets already had `/usr/bin/wp`. Note: prisymlabels has 8.3G uploads on a 25G disk — its 7.8G file backup filled the disk to 96% and made the first update fail silently (disk full); retry succeeded once space was checked, then removed the uploads `html.tar.gz` (a core update never touches `wp-content/uploads`) leaving the 74M `db.sql`. Backups: main host `/srv/wordpress/backups/telehandlers/wp2shell-patch-*`; droplets `/var/backups/wp2shell-*`.
 
 TODO (defense-in-depth, mitigated not patched): update cores to `6.8.6`+ on the 6 STAGED (non-public) main-host sites: aps-ltd, ledgability, igs, venturema, oakhill, meirglobal (meir is `5.6.17`, a large jump — do at cutover with extra care).
+
+### php2shell PHP RCE (CVE-2026-109618 + CVE-2026-109619, 2026-10-21)
+
+php.net advisory: fixed in `8.5.12`/`8.4.27`/`8.3.36`/`8.2.35`; highest risk for mod_php (all our WordPress containers). No official releases for `8.1` and older (source backports only, on php-src `PHP-{7.4,8.0,8.1}-CVE-2026-109618-109619` branches).
+
+Mitigations on all WordPress containers (main host), mounted via compose:
+
+- `/srv/wordpress/config/security-hardening.ini` -> `conf.d/zz-security-hardening.ini`: `disable_functions = exec,passthru,shell_exec,system,proc_open,popen,pcntl_exec` and `session.upload_progress.enabled = 0`. Plugins on the PHP 8 sites were checked: shell calls are `function_exists`-guarded or in unused vendor paths.
+- `/srv/wordpress/config/security-hardening-apache.conf` -> `conf-enabled/zz-security-hardening.conf`: `php_admin_value memory_limit -1` (both `php7_module` and `php_module`), so WordPress/plugins can't lower it; container `mem_limit` is the backstop.
+- Compose backups: `docker-compose.yml.bak-php2shell-20261021054807`, `docker-compose.yml.bak-php2shell-mitigations-20261021141134`.
+- Patched: `wp-pedmore` `8.4.27`, `wp-developyn` `8.3.36` (recreated 2026-10-22 on rebuilt Docker Hub images). Since 2026-10-22 every WordPress container on this host runs patched PHP (`8.4.27`, developyn `8.3.36`); none use `security-hardening-apache.conf` any more. Old AWS EC2s still serving live traffic (checked 2026-10-23):
+  - ledgability (`54.217.50.179`, Ubuntu 22.04, nginx + php8.1-fpm): **patched**. Unattended-upgrades installed Ubuntu's fixed `8.1.2-1ubuntu2.28` and php-fpm restarted on it 2026-10-23 06:05 UTC. WordPress there is `6.8.11`.
+  - oakhill (`54.155.196.25`, Ubuntu 20.04, nginx + php7.4-fpm `7.4.3-4ubuntu2.29`, WordPress `6.3.13`): **not patched**. Ubuntu's fix (`7.4.3-4ubuntu2.29+esm5`) is only available with Ubuntu Pro, and the box isn't attached. Stopgap script (disable_functions, upload_progress off, pool `php_admin_value[memory_limit] = -1` with a systemd `MemoryMax=280M` cap): `aws-to-do-migration/oakhill-php2shell-mitigate.sh`. User ran it 2026-10-23 08:54 UTC (backup `/root/php2shell-20261023085442`): php7.4-fpm active, cgroup cap 280M, shell functions disabled, upload_progress Off, home/login/wp-json 200, no errors. An unused `php7.2-fpm` (bionic package) also runs there; nginx only uses the 7.4 socket.
+  - aps-ltd: client is moving hosting themselves, out of scope. meirglobal: user is handling the DNS cutover to DO.
+  Remove the mitigations per site once it runs patched PHP (`memory_limit -1` matters most for pedmore/developyn given their earlier OOM history).
+
+### PHP 8.4 upgrade, Phase 1 (2026-10-22)
+
+`ledgability`, `ace-sections`, `bradleygas` moved from `wordpress:php8.1-apache` to `wordpress:php8.4-apache` (PHP `8.4.27`, patched for php2shell). Method per site: backup (DB + `html.tar.gz` excl. `ai1wm-backups`/cache + compose, pointer `/srv/wordpress/backups/<site>/latest-php84-upgrade-backup.txt`), baseline page snapshot, WP-CLI update of core (-> `7.1.3`), plugins and themes on PHP 8.1, re-snapshot, then image switch and re-snapshot. Helper: `/root/phase1/phase1.sh` (`backup|urls|snapshot|wp|errors`), snapshots in `/root/phase1/<site>/`. All pages unchanged in structure, no PHP fatals, no broken images; Ace/Bradley also checked visually in Chrome. Notes: ledgability `jetpack-boost` stayed at `3.13.1` (WP-CLI refused the 4.8.1 update with a bogus "requires WordPress 7.0" message) and the paid `all-in-one-wp-migration-unlimited-extension` stayed at `2.65`; ledgability's `hide-title` plugin logs a harmless pre-existing "post_title on null" warning. Patched sites (these three + pedmore/developyn) no longer mount `security-hardening-apache.conf` (`memory_limit -1`); they keep `security-hardening.ini`.
+
+### PHP 8.4 upgrade, Phase 2: telehandlers (2026-10-22)
+
+`telehandlers` moved `wordpress:php7.4-apache` -> `wordpress:php8.4-apache` (`8.4.27`), same method as Phase 1 (backup pointer `/srv/wordpress/backups/telehandlers/latest-php84-upgrade-backup.txt`). Core `6.8.11` -> `7.1.3`; plugins/themes updated on 7.4 first (Astra `4.3.1` -> `4.14.1`, WP Carousel `2.6` -> `4.0`, WP Super Cache `1.10` -> `3.1`, etc.); Contact Form 7 (`5.8.1` -> `6.2.3`) and Yoast (`22.4` -> `28.7`) only installed after the PHP switch (their new versions need PHP 8). Paid AI1WM unlimited extension left at `2.59`. Gotchas hit:
+
+- Astra's backward-compat migration runs on the first front-end request after the theme update; pages rendered before that (and cached by WP Super Cache) showed full-width hero/cover content. Clear `wp-content/cache/supercache/` after the first post-update request.
+- Font Awesome plugin 5.x links a self-hosted `uploads/font-awesome/v6.6.0/css/svg-with-js.css` that isn't created by a CLI update (404). Fixed with `wp eval --user=<admin> 'FortAwesome\FontAwesome_SVG_Styles_Manager::fetch_svg_styles( FortAwesome\fa(), FortAwesome\fa_release_provider() );'`.
+- `mystickymenu` 2.9.3 logs PHP warnings (undefined `mysticky_welcomebar_*hover*` keys) on every page under PHP 8 — log noise only, no page output.
+
+Verified: desktop full-page and mobile visual comparison against baseline, 42 images none broken, no failed requests, no console errors, both CF7 forms render (not submitted — would email the client), no PHP fatals.
+
+### PHP 8.4 upgrade, Phase 2: remaining five sites prepared (2026-10-22)
+
+`venturema`, `igs`, `oakhill`, `aps-ltd`, `meirglobal`: backed up (pointer `latest-php84-upgrade-backup.txt` per site), baseline snapshot, then core `7.1.3` + plugins/themes updated on PHP 7.4. All five render every snapshot URL with `200` and no PHP fatals on a throwaway `wordpress:php8.4-apache` container (`/root/phase1/preflight-php84.sh <site>`). The image switch was run by the user on 2026-10-22 with `/root/phase1/switch-php84.sh venturema igs oakhill aps-ltd meirglobal`. That script backs up the compose file, moves each service to `wordpress:php8.4-apache` and drops the `memory_limit -1` Apache conf. All five now run PHP `8.4.27`. Next, `/root/phase1/post-switch.sh` installed the updates that need PHP 8: igs Contact Form 7 `6.2.3`, aps-ltd Yoast `28.7` and Duplicate Post `4.7`. Every snapshot URL returns `200` and the HTML matches the PHP 7.4 copy. There are no PHP fatals. On venturema and igs, Chrome found no broken images, and the igs Contact Form 7 form renders. The form was not submitted.
+
+- Twenty Twenty-One was edited in place (not a child theme) on `venturema` (1.3: `footer.php`, `style.css` breakpoints), `aps-ltd` (1.3: `template-parts/header/site-header.php`) and `meirglobal` (1.1: `footer.php`). Those themes were **not** updated, so the edits survive; moving them into child themes would let the theme update later.
+- `venturema`: WordPress 7.1 loads per-block CSS after the theme, which gave the hero heading core's `.has-background` padding (big white box). Fixed with mu-plugin `wp-content/mu-plugins/developyn-block-css-order.php` (`should_load_separate_core_block_assets` and `should_load_block_assets_on_demand` -> false). Also added the reverse-proxy HTTPS snippet to `wp-config.php` (fixed blocked mixed-content CSS/JS from `aco-woo-dynamic-pricing`) and ran `search-replace http://venturema.co.uk -> https://` (68 rows, guid skipped). WooCommerce `8.1.4` -> `11.2.1` (51 DB updates), WooPayments `6.4.2` -> `11.2.0`.
+- `venturema` shop can't take orders, unchanged from before: the Cart and Checkout pages no longer exist (IDs 1498/1499) and the site's custom CSS hides the `/shop/` product grid. Last order 2024-10-09.
+- `igs`: Fastdup `2.7.3` fixed the PHP 8 curly-brace fatal; Astra `4.3.1` -> `4.14.1` (its `functions.php` only differed by line endings); Font Awesome SVG styles regenerated; supercache cleared after the first post-update request. Contact Form 7 `6.2.3` needs PHP 8.3, so it's installed by `post-switch.sh`. `developyn-events` logs "property on null" warnings on `/event/` with no event selected (log noise).
+- `aps-ltd`: `wp-config.php` memory limit raised `15M` -> `256M` (WP-CLI and the Freemius-based accordion plugin hit it). Yoast and Duplicate Post are installed after the switch (WP-CLI's "requires WordPress X" message).
+- `oakhill`: fixed stale `WPCACHEHOME` `/var/www/wordpress` in `wp-config.php`. Neve `3.8.2` -> `4.2.17`: hero paragraph wraps slightly narrower, otherwise the same as the live AWS site.
+- `ledgability`: `jetpack-boost` now `4.8.1` (installed from the wordpress.org zip with `--force`, which gets around the bogus WP-CLI message).
+- Staged sites (`oakhill`, `aps-ltd`, `meirglobal`) were compared with their live AWS versions using headless Chrome with `--host-resolver-rules` through an SSH tunnel and a small local HTTPS proxy, which adds `X-Forwarded-Proto`. `phase1.sh` takes `PORT=<container port>` to snapshot a staged site straight from its container.
 
 ## Important DNS Context
 
@@ -319,7 +372,7 @@ Additional sites staged on DigitalOcean but not cut over:
 - `telehandlers.co.uk`: **CUT OVER 2026-07-13**. Old AWS IP `52.211.87.147`, container `wp-telehandlers` on `127.0.0.1:8087`, DB `telehandlers`, WordPress `6.6.5`. DNS moved OFF GoDaddy (`domaincontrol.com`) to **DigitalOcean DNS** — owner switched registrar (123reg) NS to `ns1/2/3.digitalocean.com`; zone has only apex `A -> 142.93.41.146` + `www` CNAME→apex (no mail/MX/TXT/CAA on this domain). Fresh content re-sync done before cutover (DB current to 2026-07-08, uploads 39M). Search-replace cleaned 4 dev subdomains (`*.wordpress.developyn.com`), forced http→https, fixed `/var/www/wordpress`→`/var/www/html`; wp-config reverse-proxy TLS snippet added. HTTPS live (Let's Encrypt, apex+www). Pre-cutover backup `/srv/wordpress/backups/telehandlers/pre-cutover-20260713093822` (pointer at `latest-pre-cutover-backup.txt`); original staged backup `/srv/wordpress/backups/telehandlers/staged-20260630232729`.
 - `ledgability.co.uk`: old AWS IP `54.217.50.179`, container `wp-ledgability` on `127.0.0.1:8088`, DB `ledgability`, backup `/srv/wordpress/backups/ledgability/staged-20260630233429`, WordPress `6.8.5`, PHP container `8.1` to match source PHP 8.1.
 - `venturema.co.uk`: old AWS IP `3.249.250.224`, container `wp-venturema` on `127.0.0.1:8089`, DB `venturema`, backup `/srv/wordpress/backups/venturema/staged-20260630233524`, WordPress `6.3.8`. AWS instance/tag referred to this as `venturemma`, but the live domain/config is `venturema.co.uk`.
-- `nationalhiresolutions.co.uk`: old AWS IP `34.241.136.6`, container `wp-nationalhire` on `127.0.0.1:8091`, DB `nationalhire`, backup `/srv/wordpress/backups/nationalhire/staged-20260630234655`, WordPress `6.9.4`, staged URLs intentionally set to `http://nationalhiresolutions.co.uk` for local host-header testing.
+- `nationalhiresolutions.co.uk`: **REMOVED 2026-10-22** — client moved the site to another host (DNS now on Cloudflare, non-WordPress site; no traffic reached our Caddy after 2026-10-21 05:50). Container `wp-nationalhire`, compose service, Caddy block, MariaDB DB + user `nationalhire`, `.env` password and `/srv/wordpress/sites/nationalhire` all deleted. Final archive (DB dump 122 tables, `html.tar.gz` excl. `ai1wm-backups`/cache, compose + Caddyfile copies, `SHA256SUMS`): pointer `/srv/wordpress/backups/nationalhire/latest-final-archive.txt`. Old EC2 already terminated. Unused Route 53 zone `Z07992572EQTSGGNM9OMF` deleted 2026-10-22 (record backup: `route53-nationalhire-backup-before-zone-delete-*.json`).
 - `igs-uk.org`: old AWS IP `54.246.37.144`, container `wp-igs` on `127.0.0.1:8092`, DB `igs`, backup `/srv/wordpress/backups/igs/staged-20260701000352`, WordPress `6.4.8`. IGS debug logging was already disabled and no large debug log remains. Staged `wp-config.php` memory limit was raised from `15M` to `256M` because the migrated copy hit PHP memory fatals during local checks.
 - `developyn.com`: cut over to DigitalOcean in Route 53; old AWS IP `18.201.140.243`, container `wp-developyn` on `127.0.0.1:8093`, DB `developyn`, staged backup `/srv/wordpress/backups/developyn/staged-20260630235718`, fresh pre-cutover backup `/srv/wordpress/backups/developyn/pre-cutover-20260707233556`, WordPress `6.9.4`, live URLs set to `https://developyn.com`.
 
@@ -381,3 +434,32 @@ Recommended next action:
 - Prefer AWS CLI against the configured default AWS account/profile.
 - AWS account: `630423658649`; IAM user: `arn:aws:iam::630423658649:user/Melvyn`.
 - Zsh quoting can be fragile for complex remote commands; use simpler commands or `bash -lc` remotely when needed.
+
+## WPForms Weekly Email Summaries (disabled fleet-wide, 2026-09-07)
+
+WPForms Lite sends a "Your Weekly WPForms Summary for <domain>" email to each site's
+`admin_email` every Monday. Disable it by setting `email-summaries-disable` inside the
+`wpforms_settings` option array (checked by `WPForms\Emails\Summaries::is_disabled()`,
+`src/Emails/Summaries.php`), then clearing the `wpforms_email_summaries_cron` event.
+Setting the option alone is the durable fix — WPForms unschedules the cron itself on the
+next load, and deleting the cron without the option just gets it rescheduled.
+
+Applied to every install that has `wpforms-lite`:
+
+- Main DO host `142.93.41.146` (via `docker cp /srv/wordpress/wp-cli.phar <c>:/tmp` then
+  `wp option patch insert wpforms_settings email-summaries-disable 1`):
+  ace-sections, aps-ltd, bradleygas, meirglobal, oakhill, pedmore, venturema.
+  `nationalhire` was already disabled. No WPForms on developyn, igs, ledgability, telehandlers.
+- Still-live AWS EC2s (no wp-cli on them; ran a one-off PHP script against `wp-load.php`
+  as `www-data`, then removed it): `meirglobal.org` (`34.244.46.39`), `oakhilloptical.co.uk`
+  (`54.155.196.25`), `aps-ltd.com` (`3.250.158.116`). Ledgability EC2 has no WPForms.
+  These AWS boxes are the ones that were actually sending — the staged DO containers for the
+  same domains have no public traffic to fire wp-cron.
+- Other DO droplets checked, no WPForms: houghtonroofingservices.com, prisymlabels.co.uk,
+  goldcrest-products.uk, trueform.com, trueformdigital.com. No WordPress at all on
+  paramountlabels.co.uk, Ten-It, ocr.developyn.com.
+- Not verified: the `weddyn` EC2 (`34.245.45.113`) — SSH times out (security group).
+
+Affected `admin_email` values were `oliver.grubb@developyn.com` (ace-sections, bradleygas,
+oakhill, pedmore), `contact@developyn.com` (aps-ltd, venturema) and
+`melvyn.mathews@developyn.com` (meirglobal).

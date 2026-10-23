@@ -1,0 +1,125 @@
+{
+  "Comment": "Delete records before removing unused nationalhire zone (site moved to Cloudflare-hosted DNS)",
+  "Changes": [
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "nationalhiresolutions.co.uk.",
+        "Type": "A",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "142.93.41.146"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "nationalhiresolutions.co.uk.",
+        "Type": "MX",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "10 nationalhiresolutions-co-uk.mail.protection.outlook.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "nationalhiresolutions.co.uk.",
+        "Type": "TXT",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "\"MS=ms12949852\""
+          },
+          {
+            "Value": "\"v=spf1 include:_spf.mlsend.com include:spf.protection.outlook.com -all\""
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "_dmarc.nationalhiresolutions.co.uk.",
+        "Type": "TXT",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "\"v=DMARC1; p=none; rua=mailto:dmarc@nationalhiresolutions.co.uk; ruf=mailto:dmarc@nationalhiresolutions.co.uk; sp=none; aspf=r;\""
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "litesrv._domainkey.nationalhiresolutions.co.uk.",
+        "Type": "CNAME",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "litesrv._domainkey.mlsend.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "selector1._domainkey.nationalhiresolutions.co.uk.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "selector1-nationalhiresolutions-co-uk._domainkey.nationaltelehandlers.onmicrosoft.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "selector2._domainkey.nationalhiresolutions.co.uk.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "selector2-nationalhiresolutions-co-uk._domainkey.nationaltelehandlers.onmicrosoft.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "autodiscover.nationalhiresolutions.co.uk.",
+        "Type": "CNAME",
+        "TTL": 3600,
+        "ResourceRecords": [
+          {
+            "Value": "autodiscover.outlook.com"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "DELETE",
+      "ResourceRecordSet": {
+        "Name": "www.nationalhiresolutions.co.uk.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "nationalhiresolutions.co.uk"
+          }
+        ]
+      }
+    }
+  ]
+}

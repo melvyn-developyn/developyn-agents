@@ -1,0 +1,126 @@
+{
+    "ResourceRecordSets": [
+        {
+            "Name": "nationalhiresolutions.co.uk.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "142.93.41.146"
+                }
+            ]
+        },
+        {
+            "Name": "nationalhiresolutions.co.uk.",
+            "Type": "MX",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "10 nationalhiresolutions-co-uk.mail.protection.outlook.com"
+                }
+            ]
+        },
+        {
+            "Name": "nationalhiresolutions.co.uk.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1292.awsdns-33.org."
+                },
+                {
+                    "Value": "ns-70.awsdns-08.com."
+                },
+                {
+                    "Value": "ns-747.awsdns-29.net."
+                },
+                {
+                    "Value": "ns-1554.awsdns-02.co.uk."
+                }
+            ]
+        },
+        {
+            "Name": "nationalhiresolutions.co.uk.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-1292.awsdns-33.org. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        },
+        {
+            "Name": "nationalhiresolutions.co.uk.",
+            "Type": "TXT",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "\"MS=ms12949852\""
+                },
+                {
+                    "Value": "\"v=spf1 include:_spf.mlsend.com include:spf.protection.outlook.com -all\""
+                }
+            ]
+        },
+        {
+            "Name": "_dmarc.nationalhiresolutions.co.uk.",
+            "Type": "TXT",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "\"v=DMARC1; p=none; rua=mailto:dmarc@nationalhiresolutions.co.uk; ruf=mailto:dmarc@nationalhiresolutions.co.uk; sp=none; aspf=r;\""
+                }
+            ]
+        },
+        {
+            "Name": "litesrv._domainkey.nationalhiresolutions.co.uk.",
+            "Type": "CNAME",
+            "TTL": 60,
+            "ResourceRecords": [
+                {
+                    "Value": "litesrv._domainkey.mlsend.com"
+                }
+            ]
+        },
+        {
+            "Name": "selector1._domainkey.nationalhiresolutions.co.uk.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "selector1-nationalhiresolutions-co-uk._domainkey.nationaltelehandlers.onmicrosoft.com"
+                }
+            ]
+        },
+        {
+            "Name": "selector2._domainkey.nationalhiresolutions.co.uk.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "selector2-nationalhiresolutions-co-uk._domainkey.nationaltelehandlers.onmicrosoft.com"
+                }
+            ]
+        },
+        {
+            "Name": "autodiscover.nationalhiresolutions.co.uk.",
+            "Type": "CNAME",
+            "TTL": 3600,
+            "ResourceRecords": [
+                {
+                    "Value": "autodiscover.outlook.com"
+                }
+            ]
+        },
+        {
+            "Name": "www.nationalhiresolutions.co.uk.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "nationalhiresolutions.co.uk"
+                }
+            ]
+        }
+    ]
+}
